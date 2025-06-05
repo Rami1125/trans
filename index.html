@@ -142,12 +142,22 @@
         }
 
         /* עיצוב כפתור בזמן ספירה לאחור */
+        @keyframes border-sparkle {
+            0% { border-color: #ff0000; box-shadow: 0 0 10px #ff0000; }
+            25% { border-color: #ff7f00; box-shadow: 0 0 15px #ff7f00; }
+            50% { border-color: #ffff00; box-shadow: 0 0 20px #ffff00; }
+            75% { border-color: #ff7f00; box-shadow: 0 0 15px #ff7f00; }
+            100% { border-color: #ff0000; box-shadow: 0 0 10px #ff0000; }
+        }
+
         .countdown-button {
             background-color: #ffc107 !important; /* צבע צהוב בזמן ספירה */
             color: #333 !important; /* טקסט כהה יותר */
             pointer-events: none; /* מונע לחיצות נוספות */
             transform: scale(1.05); /* אפקט קטן של הגדלה */
             box-shadow: 0 0 15px rgba(255, 193, 7, 0.7);
+            border: 3px solid transparent; /* גבול התחלתי שקוף לאנימציה */
+            animation: border-sparkle 1s infinite alternate; /* אנימציית הברקה על הגבול */
         }
     </style>
 </head>
@@ -155,17 +165,17 @@
 
     <div class="w-full max-w-7xl flex flex-wrap lg:flex-nowrap justify-center gap-8">
         <!-- פאנל עובד תאילנדי - בקשות למנהל -->
-        <div class="glass-panel p-8 flex-1 flex flex-col items-center min-w-[320px] lg:min-w-[45%] bg-green-50/50">
+        <div class="glass-panel p-8 flex-1 flex flex-col items-center min-w-[320px] sm:min-w-[45%] lg:min-w-[45%] bg-green-50/50">
             <h2 class="text-3xl font-bold text-green-700 mb-6">עובד תאילנדי (בקשות למנהל)</h2>
-            <div id="thaiWorkerPanel" class="grid grid-cols-2 md:grid-cols-3 gap-5 w-full">
+            <div id="thaiWorkerPanel" class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 w-full">
                 <!-- כפתורים ייווצרו כאן באופן דינמי באמצעות JavaScript -->
             </div>
         </div>
 
         <!-- פאנל מנהל - הוראות לעובד -->
-        <div class="glass-panel p-8 flex-1 flex flex-col items-center min-w-[320px] lg:min-w-[45%] bg-blue-50/50">
+        <div class="glass-panel p-8 flex-1 flex flex-col items-center min-w-[320px] sm:min-w-[45%] lg:min-w-[45%] bg-blue-50/50">
             <h2 class="text-3xl font-bold text-blue-700 mb-6">מנהל (הוראות לעובד)</h2>
-            <div id="managerPanel" class="grid grid-cols-2 md:grid-cols-3 gap-5 w-full">
+            <div id="managerPanel" class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 w-full">
                 <!-- כפתורים ייווצרו כאן באופן דינמי באמצעות JavaScript -->
             </div>
         </div>
@@ -178,28 +188,28 @@
             <!-- כפתורים למשפטים בעברית -->
             <div class="flex flex-col items-center w-full md:w-1/2 lg:w-2/5">
                 <h3 class="text-2xl font-semibold text-gray-700 mb-4">עברית לתאית</h3>
-                <div id="instantPhrasesHe" class="grid grid-cols-1 gap-4 w-full">
+                <div id="instantPhrasesHe" class="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
                     <!-- כפתורי משפטים ייווצרו כאן -->
                 </div>
             </div>
             <!-- כפתורים למשפטים בתאית -->
             <div class="flex flex-col items-center w-full md:w-1/2 lg:w-2/5">
                 <h3 class="text-2xl font-semibold text-gray-700 mb-4">תאית לעברית</h3>
-                <div id="instantPhrasesTh" class="grid grid-cols-1 gap-4 w-full">
+                <div id="instantPhrasesTh" class="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
                     <!-- כפתורי משפטים ייווצרו כאן -->
                 </div>
             </div>
               <!-- כפתורי מספרים 1-10 בעברית -->
             <div class="flex flex-col items-center w-full md:w-1/2 lg:w-2/5 mt-8">
                 <h3 class="text-2xl font-semibold text-gray-700 mb-4">מספרים (עברית לתאית)</h3>
-                <div id="numberPhrasesHe" class="grid grid-cols-2 gap-4 w-full">
+                <div id="numberPhrasesHe" class="grid grid-cols-2 sm:grid-cols-3 gap-4 w-full">
                     <!-- כפתורי מספרים ייווצרו כאן -->
                 </div>
             </div>
             <!-- כפתורי מספרים 1-10 בתאית -->
             <div class="flex flex-col items-center w-full md:w-1/2 lg:w-2/5 mt-8">
                 <h3 class="text-2xl font-semibold text-gray-700 mb-4">ตัวเลข (תאית לעברית)</h3>
-                <div id="numberPhrasesTh" class="grid grid-cols-2 gap-4 w-full">
+                <div id="numberPhrasesTh" class="grid grid-cols-2 sm:grid-cols-3 gap-4 w-full">
                     <!-- כפתורי מספרים ייווצרו כאן -->
                 </div>
             </div>
@@ -247,8 +257,8 @@
     <script src="https://cdn.jsdelivr.net/npm/simple-keyboard@latest/build/index.js"></script>
 
     <script>
-        // כתובת שרת הפלאסק שלך - וודא שהשרת רץ על פורט 5000
-        const SERVER_URL = 'http://localhost:5000';
+        // הערה: ה-SERVER_URL הוסר מכיוון שהתרגום כעת מתבצע ישירות מול ה-Gemini API.
+        // עבור קבצי אודיו של משפטים קבועים, עליך למלא את ה-Base64 בקבצי אודיו אמיתיים.
 
         let currentAudio = null; // משתנה לשמירה על נגן האודיו הנוכחי
 
@@ -378,7 +388,7 @@
             "he_number_1": "data:audio/mpeg;base64,TBD_HE_NUMBER_1_BASE64_AUDIO_HERE",
             "th_number_1": "data:audio/mpeg;base64,TBD_TH_NUMBER_1_BASE64_AUDIO_HERE",
             "he_number_2": "data:audio/mpeg;base64,TBD_HE_NUMBER_2_BASE64_AUDIO_HERE",
-            "th_number_2": "data:audio/mpeg;base64,TBD_TH_NUMBER_2_BASE64_AUDIO_HERE",
+            "th_number_2": "data:audio/mpeg;base664,TBD_TH_NUMBER_2_BASE64_AUDIO_HERE",
             "he_number_3": "data:audio/mpeg;base64,TBD_HE_NUMBER_3_BASE64_AUDIO_HERE",
             "th_number_3": "data:audio/mpeg;base64,TBD_TH_NUMBER_3_BASE64_AUDIO_HERE",
             "he_number_4": "data:audio/mpeg;base64,TBD_HE_NUMBER_4_BASE64_AUDIO_HERE",
@@ -444,7 +454,7 @@
             { "id": "manager_good_morning_1", "display_text": "בוקר טוב", "icon": "☀️", "he_text": "בוקר טוב.", "th_text": "สวัสดีตอนเช้า", "he_audio_id": "he_good_morning_1", "th_audio_id": "th_good_morning_1", "panel": "manager", "is_urgent": false },
             { "id": "manager_good_evening_1", "display_text": "ערב טוב", "icon": "🌙", "he_text": "ערב טוב.", "th_text": "สวัสดีตอนเย็น", "he_audio_id": "he_good_evening_1", "th_audio_id": "th_good_evening_1", "panel": "manager", "is_urgent": false },
             { "id": "manager_how_are_you_1", "display_text": "מה שלומך?", "icon": "😊", "he_text": "מה שלומך?", "th_text": "สบายดีไหม?", "he_audio_id": "he_how_are_you_1", "th_audio_id": "th_how_are_you_1", "panel": "manager", "is_urgent": false },
-            { "id": "manager_how_do_you_feel_1", "display_text": "איך מרגיש?", "icon": "🤒", "he_text": "איך אתה מרגיש?", "th_text": "คุณรู้สึกอย่างไร?", "he_audio_id": "he_how_do_you_feel_1", "th_audio_id": "th_how_do_you_feel_1", "panel": "manager", "is_urgent": false },
+            { "id": "manager_how_do_you_feel_1", "display_text": "איך מרגיש?", "icon": "�", "he_text": "איך אתה מרגיש?", "th_text": "คุณรู้สึกอย่างไร?", "he_audio_id": "he_how_do_you_feel_1", "th_audio_id": "th_how_do_you_feel_1", "panel": "manager", "is_urgent": false },
             { "id": "manager_come_help_loading_1", "display_text": "בוא לעזור", "icon": "💪", "he_text": "בוא תעזור לי בהעמסה.", "th_text": "มาช่วยผม/ฉัน ขนของหน่อย", "he_audio_id": "he_come_help_loading_1", "th_audio_id": "th_come_help_loading_1", "panel": "manager", "is_urgent": false },
             { "id": "manager_work_harder_1", "display_text": "תעבוד קשה יותר", "icon": "🏋️", "he_text": "תעבוד קשה יותר.", "th_text": "ทำงานให้หนักขึ้น", "he_audio_id": "he_work_harder_1", "th_audio_id": "th_work_harder_1", "panel": "manager", "is_urgent": false },
             { "id": "manager_take_a_break_1", "display_text": "צא להפסקה", "icon": "☕", "he_text": "צא להפסקה.", "th_text": "ไปพักได้เลย", "he_audio_id": "he_take_a_break_1", "th_audio_id": "th_take_a_break_1", "panel": "manager", "is_urgent": false },
@@ -456,7 +466,7 @@
             { "id": "manager_come_back_tomorrow_1", "display_text": "תחזור מחר", "icon": "🗓️", "he_text": "תחזור מחר בבוקר.", "th_text": "กลับมาพรุ่งนี้เช้า", "he_audio_id": "he_come_back_tomorrow_1", "th_audio_id": "th_come_back_tomorrow_1", "panel": "manager", "is_urgent": false },
             { "id": "manager_please_1", "display_text": "בבקשה", "icon": "🙏", "he_text": "בבקשה.", "th_text": "โปรด", "he_audio_id": "he_please_1", "th_audio_id": "th_please_1", "panel": "manager", "is_urgent": false },
             { "id": "manager_yes_1", "display_text": "כן", "icon": "👍", "he_text": "כן.", "th_text": "ใช่", "he_audio_id": "he_yes_1", "th_audio_id": "th_yes_1", "panel": "manager", "is_urgent": false },
-            { "id": "manager_no_1", "display_text": "לא", "icon": "�", "he_text": "לא.", "th_text": "ไม่", "he_audio_id": "he_no_1", "th_audio_id": "th_no_1", "panel": "manager", "is_urgent": false },
+            { "id": "manager_no_1", "display_text": "לא", "icon": "👎", "he_text": "לא.", "th_text": "ไม่", "he_audio_id": "he_no_1", "th_audio_id": "th_no_1", "panel": "manager", "is_urgent": false },
             { "id": "manager_wait_a_minute", "display_text": "חכה דקה", "icon": "⏱️", "he_text": "חכה דקה.", "th_text": "รอสักครู่", "he_audio_id": "he_wait_a_minute", "th_audio_id": "th_wait_a_minute", "panel": "manager", "is_urgent": false },
             { "id": "manager_clean_floor", "display_text": "נקה רצפה", "icon": "🧹", "he_text": "תנקה את הרצפה.", "th_text": "ทำความสะอาดพื้น", "he_audio_id": "he_clean_floor", "th_audio_id": "th_clean_floor", "panel": "manager", "is_urgent": false },
             { "id": "manager_come_here_now", "display_text": "בוא לכאן מיד", "icon": "🏃", "he_text": "בוא לכאן מיד!", "th_text": "มานี่เดี๋ยวนี้!", "he_audio_id": "he_come_here_now", "th_audio_id": "th_come_here_now", "panel": "manager", "is_urgent": true },
@@ -531,7 +541,7 @@
         async function loadPhrases() {
             renderButtons(phrasesData);
             renderInstantPhraseButtons();
-            renderNumberPhraseButtons();
+            renderNumberPhrases();
         }
 
         /**
@@ -559,12 +569,12 @@
                 iconSpan.textContent = phrase.icon || ''; // הוסף אייקון אם קיים
                 iconSpan.classList.add('text-4xl'); // גודל גדול לאייקון
 
-                const textSpan = document.createElement('span');
-                textSpan.textContent = phrase.display_text || phrase.he_text; // טקסט הכפתור
-                textSpan.classList.add('original-text'); // קלאס לזיהוי הטקסט המקורי
+                const heTextSpan = document.createElement('span');
+                heTextSpan.textContent = phrase.display_text || phrase.he_text; // טקסט הכפתור בעברית
+                heTextSpan.classList.add('original-text'); // קלאס לזיהוי הטקסט המקורי
 
                 button.appendChild(iconSpan);
-                button.appendChild(textSpan);
+                button.appendChild(heTextSpan);
 
                 let audioData;
                 let textToShow;
@@ -572,7 +582,12 @@
                 let isUrgent;
 
                 if (phrase.panel === 'thai_worker') {
-                    // כפתור לעובד תאילנדי: מציג טקסט עברי קצר, בלחיצה משמיע עברית למנהל, מציג פופאפ בעברית
+                    // כפתור לעובד תאילנדי: מציג טקסט עברי קצר + טקסט תאית, בלחיצה משמיע עברית למנהל, מציג פופאפ בעברית
+                    const thTextSpan = document.createElement('span');
+                    thTextSpan.textContent = phrase.th_text; // טקסט בתאית
+                    thTextSpan.classList.add('thai-text', 'text-sm', 'opacity-80'); // פונט תאית, גודל קטן יותר, שקיפות
+                    button.appendChild(thTextSpan);
+
                     button.classList.add('bg-green-600', 'hover:bg-green-700'); // צבע ירוק לעובד
                     audioData = base64AudioData[phrase.he_audio_id];
                     textToShow = phrase.he_text;
@@ -597,8 +612,8 @@
                     showPopup(textToShow, audioData, lang, isUrgent);
                 };
 
-                // הטמעת הספירה לאחור על הכפתור
-                button.onclick = () => startCountdownOnButton(button, phrase.display_text || phrase.he_text, 4, actionCallback);
+                // הטמעת הספירה לאחור על הכפתור (8 שניות)
+                button.onclick = () => startCountdownOnButton(button, phrase.display_text || phrase.he_text, 8, actionCallback);
             });
         }
 
@@ -625,7 +640,7 @@
                 button.classList.add('original-text'); // קלאס לזיהוי הטקסט המקורי
 
                 const actionCallback = () => translateAndDisplayInstant(phraseText, 'he', 'th');
-                button.onclick = () => startCountdownOnButton(button, phraseText, 4, actionCallback);
+                button.onclick = () => startCountdownOnButton(button, phraseText, 8, actionCallback); // 8 שניות
                 instantPhrasesHePanel.appendChild(button);
             });
 
@@ -642,7 +657,7 @@
                 button.classList.add('original-text'); // קלאס לזיהוי הטקסט המקורי
 
                 const actionCallback = () => translateAndDisplayInstant(phraseText, 'th', 'he');
-                button.onclick = () => startCountdownOnButton(button, phraseText, 4, actionCallback);
+                button.onclick = () => startCountdownOnButton(button, phraseText, 8, actionCallback); // 8 שניות
                 instantPhrasesThPanel.appendChild(button);
             });
         }
@@ -650,7 +665,7 @@
         /**
          * פונקציה ליצירת כפתורי מספרים.
          */
-        function renderNumberPhraseButtons() {
+        function renderNumberPhrases() {
             const numberPhrasesHePanel = document.getElementById('numberPhrasesHe');
             const numberPhrasesThPanel = document.getElementById('numberPhrasesTh');
 
@@ -670,8 +685,8 @@
                 button.textContent = displayText;
                 button.classList.add('original-text'); // קלאס לזיהוי הטקסט המקורי
 
-                const actionCallback = () => translateAndDisplayInstant(phraseText, 'he', 'th');
-                button.onclick = () => startCountdownOnButton(button, displayText, 4, actionCallback);
+                const actionCallback = () => translateAndDisplayInstant(phraseText, 'he', 'th', true); // הוסף true כדי לציין שזה מספר
+                button.onclick = () => startCountdownOnButton(button, displayText, 8, actionCallback); // 8 שניות
                 numberPhrasesHePanel.appendChild(button);
             });
 
@@ -688,8 +703,8 @@
                 button.textContent = displayText;
                 button.classList.add('original-text'); // קלאס לזיהוי הטקסט המקורי
 
-                const actionCallback = () => translateAndDisplayInstant(phraseText, 'th', 'he');
-                button.onclick = () => startCountdownOnButton(button, displayText, 4, actionCallback);
+                const actionCallback = () => translateAndDisplayInstant(phraseText, 'th', 'he', true); // הוסף true כדי לציין שזה מספר
+                button.onclick = () => startCountdownOnButton(button, displayText, 8, actionCallback); // 8 שניות
                 numberPhrasesThPanel.appendChild(button);
             });
         }
@@ -704,12 +719,14 @@
          */
         function startCountdownOnButton(button, originalText, duration, callback) {
             let timeLeft = duration;
-            const originalChildren = Array.from(button.children); // שמור את ילדי הכפתור המקוריים (אייקון, טקסט)
+            // שמור את התוכן המקורי של הכפתור לפני שינוי
+            const originalContent = button.innerHTML;
+            const originalClasses = Array.from(button.classList); // שמור קלאסים מקוריים
 
             // נקה את תוכן הכפתור והוסף את טקסט הספירה
             button.innerHTML = `<span class="text-3xl font-bold">${timeLeft} שניות...</span>`;
             button.disabled = true; // נטרל את הכפתור
-            button.classList.add('countdown-button'); // הוסף קלאס לספירה לאחור
+            button.classList.add('countdown-button'); // הוסף קלאס לספירה לאחור ואנימציית גבול
 
             const countdownInterval = setInterval(() => {
                 timeLeft--;
@@ -718,10 +735,12 @@
                 } else {
                     clearInterval(countdownInterval);
                     // שחזר את תוכן הכפתור המקורי
-                    button.innerHTML = '';
-                    originalChildren.forEach(child => button.appendChild(child));
+                    button.innerHTML = originalContent;
+                    // הסר את הקלאסים של הספירה לאחור והחזר את הקלאסים המקוריים
+                    button.classList.remove('countdown-button');
+                    button.classList.add(...originalClasses); // החזר את הקלאסים המקוריים
+                    
                     button.disabled = false; // הפעל מחדש את הכפתור
-                    button.classList.remove('countdown-button'); // הסר את קלאס הספירה
                     callback(); // הפעל את הפונקציה המקורית
                 }
             }, 1000); // כל שנייה
@@ -847,31 +866,70 @@
 
 
         /**
-         * פונקציה לתרגום טקסט והצגתו באזור התרגום המיידי.
+         * פונקציה לתרגום טקסט והצגתו באזור התרגום המיידי באמצעות Gemini API.
          * @param {string} text - הטקסט לתרגום.
          * @param {string} sourceLang - שפת המקור (he/th).
          * @param {string} targetLang - שפת היעד (he/th).
+         * @param {boolean} isNumberTranslation - האם זהו תרגום מספרים (לשם קביעת הקונטקסט ל-LLM).
          */
-        async function translateAndDisplayInstant(text, sourceLang, targetLang) {
+        async function translateAndDisplayInstant(text, sourceLang, targetLang, isNumberTranslation = false) {
             instantTranslationOutput.textContent = "מתרגם..."; // הצג הודעת טעינה
             instantTranslationOutput.classList.remove('rainbow-border'); // הסר את האנימציה הקודמת
             instantTranslationOutput.classList.remove('typing-effect'); // הסר אפקט הקלדה קודם
             instantTranslationOutput.classList.remove('thai-text'); // נקה קלאס פונט תאית
 
+            const apiKey = ""; // API Key יסופק אוטומטית ע"י Canvas בזמן ריצה
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+            let sourceLangName = sourceLang === 'he' ? 'Hebrew' : 'Thai';
+            let targetLangName = targetLang === 'he' ? 'Hebrew' : 'Thai';
+            let prompt = `Translate the following text from ${sourceLangName} to ${targetLangName}: '${text}'. Provide only the translated text.`;
+
+            if (isNumberTranslation) {
+                prompt = `Translate the number/numeric phrase '${text}' from ${sourceLangName} to ${targetLangName}. Provide only the translated number/numeric phrase.`;
+            }
+
+            let chatHistory = [];
+            chatHistory.push({ role: "user", parts: [{ text: prompt }] });
+
+            const payload = {
+                contents: chatHistory,
+                generationConfig: {
+                    responseMimeType: "application/json",
+                    responseSchema: {
+                        type: "OBJECT",
+                        properties: {
+                            "translated_text": { "type": "STRING" }
+                        },
+                        "propertyOrdering": ["translated_text"]
+                    }
+                }
+            };
+
             try {
-                const response = await fetch(`${SERVER_URL}/translate`, {
+                const response = await fetch(apiUrl, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ text, source_lang: sourceLang, target_lang: targetLang })
+                    body: JSON.stringify(payload)
                 });
 
                 if (!response.ok) {
-                    throw new Error(`שגיאת שרת: ${response.statusText}`);
+                    const errorData = await response.json();
+                    throw new Error(`שגיאת שרת מה-Gemini API: ${response.status} - ${errorData.error.message || response.statusText}`);
                 }
 
-                const data = await response.json();
-                const translatedText = data.translated_text;
-                const audioBase64 = data.audio_base64;
+                const result = await response.json();
+                let translatedText = "לא נמצא תרגום"; // ברירת מחדל
+
+                if (result.candidates && result.candidates.length > 0 &&
+                    result.candidates[0].content && result.candidates[0].content.parts &&
+                    result.candidates[0].content.parts.length > 0) {
+                    const jsonString = result.candidates[0].content.parts[0].text;
+                    const parsedJson = JSON.parse(jsonString);
+                    translatedText = parsedJson.translated_text;
+                } else {
+                    console.warn("מבנה תגובת ה-Gemini API אינו צפוי או שהתוכן חסר.");
+                }
 
                 // הפעל אפקט הקלדה והצג את הטקסט
                 instantTranslationOutput.textContent = ''; // נקה טקסט קיים
@@ -896,15 +954,11 @@
                     }
                 }, 50); // מהירות הקלדה
 
-                // נגן את האודיו באופן מיידי
-                if (audioBase64) {
-                    playAudio(`data:audio/mpeg;base64,${audioBase64}`);
-                } else {
-                    console.warn("לא התקבל אודיו מהשרת עבור תרגום מיידי.");
-                }
+                // הערה: ה-Gemini API (gemini-2.0-flash) אינו מספק אודיו עבור תרגומי טקסט חופשי.
+                // אם תרצה/י יכולות TTS עבור תרגומים חופשיים, תצטרך/י לשלב שירות TTS נפרד.
 
             } catch (error) {
-                console.error("שגיאה בתרגום אודיו או טקסט:", error);
+                console.error("שגיאה בתרגום טקסט באמצעות Gemini API:", error);
                 instantTranslationOutput.textContent = `שגיאה בתרגום: ${error.message}`;
                 instantTranslationOutput.classList.remove('typing-effect');
                 instantTranslationOutput.classList.remove('rainbow-border');
@@ -970,12 +1024,12 @@
             freeTextInput.placeholder = "พิมพ์ข้อความภาษาไทยที่นี่...";
         });
 
-        // כפתור "השמע טקסט מתורגם"
+        // כפתור "השמע טקסט מתורגם" - כעת יתרגם טקסט בלבד
         document.getElementById('speakTranslated').addEventListener('click', async () => {
             const textToTranslate = freeTextInput.value.trim();
             if (!textToTranslate) {
                 console.log("אין טקסט לתרגום והשמעה.");
-                instantTranslationOutput.textContent = "הקלד/י טקסט לתרגום והשמעה";
+                instantTranslationOutput.textContent = "הקלד/י טקסט לתרגום"; // עדכן הודעה
                 return;
             }
 
@@ -989,25 +1043,59 @@
                 targetLang = 'he';
             }
 
-            instantTranslationOutput.textContent = "מתרגם ומכין אודיו...";
+            instantTranslationOutput.textContent = "מתרגם..."; // עדכן הודעה
             instantTranslationOutput.classList.remove('rainbow-border');
             instantTranslationOutput.classList.remove('typing-effect');
             instantTranslationOutput.classList.remove('thai-text');
 
+            const apiKey = ""; // API Key יסופק אוטומטית ע"י Canvas בזמן ריצה
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+            let sourceLangName = sourceLang === 'he' ? 'Hebrew' : 'Thai';
+            let targetLangName = targetLang === 'he' ? 'Hebrew' : 'Thai';
+            const prompt = `Translate the following text from ${sourceLangName} to ${targetLangName}: '${textToTranslate}'. Provide only the translated text.`;
+
+            let chatHistory = [];
+            chatHistory.push({ role: "user", parts: [{ text: prompt }] });
+
+            const payload = {
+                contents: chatHistory,
+                generationConfig: {
+                    responseMimeType: "application/json",
+                    responseSchema: {
+                        type: "OBJECT",
+                        properties: {
+                            "translated_text": { "type": "STRING" }
+                        },
+                        "propertyOrdering": ["translated_text"]
+                    }
+                }
+            };
+
             try {
-                const response = await fetch(`${SERVER_URL}/translate`, {
+                const response = await fetch(apiUrl, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ text: textToTranslate, source_lang: sourceLang, target_lang: targetLang })
+                    body: JSON.stringify(payload)
                 });
 
                 if (!response.ok) {
-                    throw new Error(`שגיאת שרת: ${response.statusText}`);
+                    const errorData = await response.json();
+                    throw new Error(`שגיאת שרת מה-Gemini API: ${response.status} - ${errorData.error.message || response.statusText}`);
                 }
 
-                const data = await response.json();
-                const translatedText = data.translated_text;
-                const audioBase64 = data.audio_base64;
+                const result = await response.json();
+                let translatedText = "לא נמצא תרגום"; // ברירת מחדל
+
+                if (result.candidates && result.candidates.length > 0 &&
+                    result.candidates[0].content && result.candidates[0].content.parts &&
+                    result.candidates[0].content.parts.length > 0) {
+                    const jsonString = result.candidates[0].content.parts[0].text;
+                    const parsedJson = JSON.parse(jsonString);
+                    translatedText = parsedJson.translated_text;
+                } else {
+                    console.warn("מבנה תגובת ה-Gemini API אינו צפוי או שהתוכן חסר.");
+                }
 
                 // הצג את הטקסט המתורגם
                 instantTranslationOutput.textContent = '';
@@ -1031,15 +1119,11 @@
                     }
                 }, 50);
 
-                // נגן את האודיו
-                if (audioBase64) {
-                    playAudio(`data:audio/mpeg;base64,${audioBase64}`);
-                } else {
-                    console.warn("לא התקבל אודיו מהשרת.");
-                }
+                // הערה: ה-Gemini API (gemini-2.0-flash) אינו מספק אודיו עבור תרגומי טקסט חופשי.
+                // אם תרצה/י יכולות TTS עבור תרגומים חופשיים, תצטרך/י לשלב שירות TTS נפרד.
 
             } catch (error) {
-                console.error("שגיאה בתרגום חופשי:", error);
+                console.error("שגיאה בתרגום חופשי באמצעות Gemini API:", error);
                 instantTranslationOutput.textContent = `שגיאה: ${error.message}`;
                 instantTranslationOutput.classList.remove('typing-effect');
                 instantTranslationOutput.classList.remove('rainbow-border');
