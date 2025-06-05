@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>מתורגמן חכם - עובד-מנהל</title>
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/simple-keyboard@latest/build/css/index.css">
+
+    <style>
+        /* עיצוב כללי של הגוף */
+        body {
+            font-family: 'Arial', sans-serif;
+            display: flex;
+            flex-direction: column; /* סידור אנכי של התוכן */
+            justify-content: flex-start;
+            align-items: center; /* מרכוז אופקי */
+            padding: 20px;
+            background-color: #eef2f7; /* רקע בהיר ונעים */
+            gap: 25px; /* מרווח בין חלקים שונים */
+            min-height: 100vh; /* גובה מינימלי למילוי כל המסך */
+            box-sizing: border-box; /* כולל פדינג ובורדר ברוחב/גובה */
+        }
+
+        /* מכולה לשני הפאנלים העליונים */
+        .panels-container {
+            display: flex;
+            justify-content: space-around;
+            width: 100%;
+            max-width: 1300px; /* רוחב מירבי לטאבלט גדול */
+            gap: 25px;
+            flex-wrap: wrap; /* יאפשר גלישה לשורה הבאה במסכים קטנים יותר */
+        }
+
+        /* עיצוב כללי של כל פאנל (כפתורים או מקלדת) */
+        .panel {
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+            padding: 25px;
+            flex: 1; /* יתפוס מקום באופן שווה */
+            min-width: 380px; /* רוחב מינימלי לכל פאנל */
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .panel h2 {
+            color: #2c3e50; /* כותרות כהות יותר */
+            margin-bottom: 25px;
+            font-size: 1.8em;
+            font-weight: 600;
+        }
+
+        /* רשת הכפתורים */
+        .button-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 18px;
+            width: 100%;
+            max-width: 800px; /* רוחב מירבי לרשת הכפתורים */
+            margin: 0 auto; /* מרכוז הרשת בתוך הפאנל */
+        }
+
+        /* עיצוב כפתורים בסיסי */
+        .action-button {
+            background-color: #3498db; /* כחול בסיסי */
+            color: white;
+            border: none;
+            padding: 18px 22px;
+            border-radius: 8px;
+            font-size: 1.2em;
+            cursor: pointer;
+            transition: all 0.3s ease; /* אנימציה חלקה */
+            white-space: normal; /* מאפשר שבירת שורות */
+            word-wrap: break-word; /* וודא שבירת מילים ארוכות */
+            min-height: 90px; /* גובה מינימלי */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .action-button:hover {
+            background-color: #2980b9; /* כחול כהה יותר במעבר עכבר */
+            transform: translateY(-2px); /* אפקט קל של הרמה */
+            box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15);
+        }
+        .action-button:active {
+            background-color: #21618c; /* כחול כהה בלחיצה */
+            transform: translateY(0);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        /* עיצוב כפתורים ספציפי לעובד התאילנדי (בקשות) */
+        .thai-button {
+            background-color: #27ae60; /* ירוק */
+        }
+        .thai-button:hover {
+            background-color: #229954;
+        }
+        .thai-button:active {
+            background-color: #1e8449;
+        }
+
+        /* פאנל כתיבה חופשית */
+        .free-text-panel {
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+            padding: 25px;
+            width: 100%;
+            max-width: 1300px;
+            margin-top: 25px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .free-text-panel textarea {
+            width: calc(100% - 20px); /* רוחב כמעט מלא */
+            min-height: 120px; /* גובה מינימלי גדול יותר */
+            border: 1px solid #c0c0c0;
+            border-radius: 8px;
+            padding: 15px;
+            font-size: 1.4em; /* גודל פונט גדול יותר */
+            margin-bottom: 20px;
+            resize: vertical; /* מאפשר שינוי גודל אנכי */
+            box-sizing: border-box;
+            outline: none; /* מסיר את קו המתאר בלחיצה */
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+        .free-text-panel textarea:focus {
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.3);
+        }
+
+        .free-text-panel .controls {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 20px;
+            flex-wrap: wrap; /* יאפשר כפתורים לרדת שורה במסכים קטנים */
+        }
+        .free-text-panel .controls button {
+            background-color: #6c757d; /* אפור */
+            color: white;
+            border: none;
+            padding: 15px 25px;
+            border-radius: 8px;
+            font-size: 1.2em;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            box-shadow: 0 3px 5px rgba(0, 0, 0, 0.1);
+        }
+        .free-text-panel .controls button:hover {
+            background-color: #5a6268;
+            transform: translateY(-1px);
+        }
+        .free-text-panel .controls button:active {
+            background-color: #4e555b;
+            transform: translateY(0);
+        }
+
+        .free-text-panel .controls .speak-button {
+            background-color: #e74c3c; /* אדום חי */
+        }
+        .free-text-panel .controls .speak-button:hover {
+            background-color: #c0392b;
+        }
+        .free-text-panel .controls .speak-button:active {
+            background-color: #a93226;
+        }
+
+        /* עיצוב המקלדת הווירטואלית עצמה */
+        .simple-keyboard {
+            width: 100%;
+            max-width: 900px; /* רוחב מירבי למקלדת */
+            margin-top: 20px;
+            padding-bottom: 20px; /* רווח למטה */
+        }
+
+        /* הסתרת נגן האודיו המובנה של הדפדפן */
+        audio {
+            display: none;
+        }
+
+        /* התאמה למסכים קטנים יותר */
+        @media (max-width: 768px) {
+            .panels-container {
+                flex-direction: column; /* בפאנלים אנכית במסכים קטנים */
+                align-items: center;
+            }
+            .panel {
+                width: 95%; /* רוחב כמעט מלא למסכים קטנים */
+            }
+            .button-grid {
+                grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            }
+            .action-button {
+                font-size: 1em;
+                min-height: 70px;
+                padding: 12px 15px;
+            }
+            .free-text-panel .controls button {
+                font-size: 1em;
+                padding: 10px 15px;
+            }
+            .free-text-panel textarea {
+                font-size: 1.1em;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="panels-container">
+        <div class="panel">
+            <h2>עובד תאילנדי (בקשות למנהל)</h2>
+            <div class="button-grid" id="thaiWorkerPanel">
+                </div>
+        </div>
+
+        <div class="panel">
+            <h2>מנהל (הוראות לעובד)</h2>
+            <div class="button-grid" id="managerPanel">
+                </div>
+        </div>
+    </div>
+
+    <div class="free-text-panel">
+        <h2>תרגום וכתיבה חופשית</h2>
+        <textarea id="freeTextInput" placeholder="הקלד כאן טקסט בעברית או בתאית..." rows="4"></textarea>
+        <div class="controls">
+            <button id="setLangHe">הקלד בעברית</button>
+            <button id="setLangTh">พิมพ์ภาษาไทย</button>
+            <button id="speakTranslated" class="speak-button">השמע טקסט מתורגם</button>
+        </div>
+        <div class="simple-keyboard"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/simple-keyboard@latest/build/index.js"></script>
+    <script>
+        // נתיב לתיקיית קבצי האודיו עבור המשפטים הקבועים
+        const audioPath = 'audio/'; 
+        let currentAudio = null; // משתנה לשמירה על נגן האודיו הנוכחי
+        // כתובת שרת הפלאסק שלך - וודא שהשרת רץ על פורט 5000
+        const SERVER_URL = 'http://localhost:5000'; 
+
+        // הגדרות מקלדת וירטואלית SimpleKeyboard
+        let keyboard;
+        let currentKeyboardLayout = 'hebrew'; // ברירת מחדל: עברית
+        
+        // פריסות מקלדת עבור עברית ותאית (יש צורך לבדוק את התאית מול פריסה סטנדרטית)
+        // פריסות אלו הן דוגמאות בסיסיות ויתכן שיש צורך להתאים אותן במדויק.
+        const layoutOptions = {
+            'hebrew': {
+                default: [
+                    "` 1 2 3 4 5 6 7 8 9 0 - = {bksp}",
+                    "{tab} / ' ק ר ו ן ט צ ש ד ג כ ע ח י ל ף ,",
+                    "{capslock} ז ס ב ה נ מ ך ף , . / \\",
+                    "{shift} ת א ד ה ב ג ו ח ז ל ט ר נ מ {shift}",
+                    "{space}"
+                ],
+                shift: [
+                    "~ ! @ # $ % ^ & * ( ) _ + {bksp}",
+                    "{tab} Q W E R T Y U I O P { } |",
+                    "{capslock} A S D F G H J K L : \"",
+                    "{shift} Z X C V B N M < > ? {shift}",
+                    "{space}"
+                ]
+            },
+            'thai': {
+                default: [
+                    "ๅ / - ภ ถุ ู กึ หิ ่ ้ ็ ื {bksp}",
+                    "{tab} พั รน ะ ตร ยบ ุย อิ โ โอ ป ก ฬ",
+                    "{capslock} า ส ด ฟ แ ะั ห โ ค ช",
+                    "{shift} ซษ มอ ดบ น เ ท จ ก ็ {shift}",
+                    "{space}"
+                ],
+                shift: [
+                    "+ ๑ ๒ ๓ ๔ ๕ ๖ ๗ ๘ ๙ ๐ ฯ ญ ฏ {bksp}",
+                    "{tab} ฎ ฑ ธ ํ ๊ ณ ม ย ณบ ุุ ณข ณค ณง {tab}",
+                    "{capslock} ฟะ หะ กะ ดะ สั ะั น ะร ะล ะอ ะใ {capslock}",
+                    "{shift} ะม ะน ะว ะอ ะร ะส ะฟ ะง ะจ ะค ะล {shift}",
+                    "{space}"
+                ]
+            }
+        };
+
+
+        // פונקציה לטעינת נתוני המשפטים מקובץ JSON
+        async function loadPhrases() {
+            try {
+                const response = await fetch('phrases.json');
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const phrases = await response.json();
+                renderButtons(phrases);
+            } catch (error) {
+                console.error("שגיאה בטעינת המשפטים:", error);
+                document.getElementById('thaiWorkerPanel').innerHTML = "<p>שגיאה בטעינת נתונים. נסה לרענן את הדף.</p>";
+                document.getElementById('managerPanel').innerHTML = "<p>שגיאה בטעינת נתונים. נסה לרענן את הדף.</p>";
+            }
+        }
+
+        // פונקציה ליצירת כפתורים והצגתם בפאנלים המתאימים
+        function renderButtons(phrases) {
+            const thaiWorkerPanel = document.getElementById('thaiWorkerPanel');
+            const managerPanel = document.getElementById('managerPanel');
+
+            phrases.forEach(phrase => {
+                const button = document.createElement('button');
+                button.classList.add('action-button');
+
+                if (phrase.panel === 'thai_worker') {
+                    // לעובד תאילנדי: כפתור עם טקסט עברי, בלחיצה משמיע בעברית למנהל
+                    button.textContent = phrase.he_text;
+                    button.onclick = () => playAudio(audioPath + phrase.he_audio_file);
+                    button.classList.add('thai-button'); 
+                    thaiWorkerPanel.appendChild(button);
+                } else if (phrase.panel === 'manager') {
+                    // למנהל: כפתור עם טקסט עברי, בלחיצה משמיע בתאית לעובד
+                    button.textContent = phrase.he_text;
+                    button.onclick = () => playAudio(audioPath + phrase.th_audio_file);
+                    managerPanel.appendChild(button);
+                }
+            });
+        }
+
+        // פונקציה להשמעת קובץ אודיו
+        function playAudio(audioFile) {
+            // אם יש אודיו אחר שמתנגן, עצור אותו ואתחל אותו
+            if (currentAudio) {
+                currentAudio.pause();
+                currentAudio.currentTime = 0; 
+            }
+            
+            // צור אובייקט Audio חדש והפעל אותו
+            currentAudio = new Audio(audioFile);
+            currentAudio.play().catch(e => console.error("שגיאה בהשמעת אודיו:", e));
+        }
+
+        // ----- לוגיקה עבור המקלדת והתרגום החופשי -----
+
+        // אתחול המקלדת הווירטואלית
+        function initKeyboard() {
+            const freeTextInput = document.getElementById('freeTextInput');
+            keyboard = new SimpleKeyboard.default({
+                input: freeTextInput, // קושר את המקלדת לשדה הטקסט
+                layout: layoutOptions[currentKeyboardLayout], // פריסת המקלדת הראשונית
+                rtl: currentKeyboardLayout === 'hebrew', // הגדרת כיווניות (RTL לעברית)
+                onChange: input => freeTextInput.value = input, // עדכון שדה הטקסט עם הקלדת המשתמש
+                onKeyPress: button => onKeyPress(button), // פונקציה לטיפול בלחיצות מקשים
+                theme: "hg-theme-default", // נושא עיצוב בסיסי של simple-keyboard
+                display: {
+                    '{bksp}': 'מחק',
+                    '{tab}': 'טאב',
+                    '{capslock}': 'Caps Lock',
+                    '{shift}': 'Shift',
+                    '{space}': 'רווח'
+                }
+            });
+
+            // עדכון המקלדת כאשר משתמש מקליד ישירות לשדה הטקסט
+            freeTextInput.addEventListener('input', event => {
+                keyboard.setInput(event.target.value);
+            });
+
+            // הגדר כיוון טקסט התחלתי
+            document.getElementById('freeTextInput').dir = currentKeyboardLayout === 'hebrew' ? 'rtl' : 'ltr';
+        }
+
+        // טיפול בלחיצות מקשים מיוחדים במקלדת
+        function onKeyPress(button) {
+            // עבור Shift או Caps Lock, החלף בין פריסות המקלדת (רגיל/Shift)
+            if (button === "{shift}" || button === "{capslock}") {
+                toggleShift();
+            }
+        }
+
+        // החלפה בין מצב Shift למצב רגיל במקלדת
+        function toggleShift() {
+            let currentLayoutName = keyboard.options.layoutName;
+            let newLayoutName = currentLayoutName === "default" ? "shift" : "default";
+            keyboard.setOptions({ layoutName: newLayoutName });
+        }
+
+        // לחיצה על כפתור "הקלד בעברית"
+        document.getElementById('setLangHe').addEventListener('click', () => {
+            currentKeyboardLayout = 'hebrew';
+            keyboard.setOptions({
+                layout: layoutOptions['hebrew'],
+                rtl: true // עברית היא מימין לשמאל
+            });
+            document.getElementById('freeTextInput').dir = 'rtl'; // הגדר כיוון טקסט מימין לשמאל
+        });
+
+        // לחיצה על כפתור "พิมพ์ภาษาไทย" (הקלד בתאית)
+        document.getElementById('setLangTh').addEventListener('click', () => {
+            currentKeyboardLayout = 'thai';
+            keyboard.setOptions({
+                layout: layoutOptions['thai'],
+                rtl: false // תאית היא משמאל לימין
+            });
+            document.getElementById('freeTextInput').dir = 'ltr'; // הגדר כיוון טקסט משמאל לימין
+        });
+
+        // פונקציית תרגום והשמעה עבור טקסט חופשי (מתקשרת לשרת הפלאסק)
+        document.getElementById('speakTranslated').addEventListener('click', async () => {
+            const text = document.getElementById('freeTextInput').value.trim();
+            if (!text) {
+                alert("אנא הקלד טקסט לתרגום והשמעה.");
+                return;
+            }
+
+            let sourceLang; // שפת המקור של הטקסט שנקלט
+            let targetLang; // שפת היעד של התרגום וההשמעה
+
+            // קביעת שפות המקור והיעד בהתבסס על פריסת המקלדת הנוכחית
+            if (currentKeyboardLayout === 'hebrew') {
+                sourceLang = 'he';
+                targetLang = 'th'; // אם המשתמש כותב בעברית, נתרגם ונשמיע בתאית (לצורך העובד)
+            } else { // currentKeyboardLayout === 'thai'
+                sourceLang = 'th';
+                targetLang = 'he'; // אם המשתמש כותב בתאית, נתרגם ונשמיע בעברית (לצורך המנהל)
+            }
+
+            try {
+                // שליחת הבקשה לשרת הפלאסק
+                const response = await fetch(`${SERVER_URL}/translate_and_speak`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        text: text,
+                        source_lang: sourceLang,
+                        target_lang: targetLang
+                    })
+                });
+
+                if (!response.ok) {
+                    // אם השרת החזיר שגיאה
+                    const errorData = await response.json();
+                    throw new Error(`שגיאת שרת: ${response.status} - ${errorData.error || 'שגיאה לא ידועה'}`);
+                }
+
+                // קבלת קובץ האודיו כ-Blob (נתונים בינאריים)
+                const audioBlob = await response.blob();
+                // יצירת URL זמני לאודיו מה-Blob
+                const audioUrl = URL.createObjectURL(audioBlob);
+                // השמעת האודיו
+                playAudio(audioUrl);
+
+            } catch (error) {
+                console.error("שגיאה בתרגום או השמעה:", error);
+                alert("שגיאה בתרגום או השמעה: " + error.message + "\nודא ששרת הפלאסק פועל.");
+            }
+        });
+
+        // טען את המשפטים עם טעינת הדף ואתחל את המקלדת
+        document.addEventListener('DOMContentLoaded', () => {
+            loadPhrases();
+            initKeyboard();
+        });
+    </script>
+
+</body>
+</html>
