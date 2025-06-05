@@ -510,12 +510,12 @@
             { "id": "manager_come_back_tomorrow_1", "display_text": "תחזור מחר", "icon": "🗓️", "he_text": "תחזור מחר בבוקר.", "th_text": "กลับมาพรุ่งนี้เช้า", "he_audio_id": "he_come_back_tomorrow_1", "th_audio_id": "th_come_back_tomorrow_1", "panel": "manager", "is_urgent": false },
             { "id": "manager_please_1", "display_text": "בבקשה", "icon": "🙏", "he_text": "בבקשה.", "th_text": "โปรด", "he_audio_id": "he_please_1", "th_audio_id": "th_please_1", "panel": "manager", "is_urgent": false },
             { "id": "manager_yes_1", "display_text": "כן", "icon": "👍", "he_text": "כן.", "th_text": "ใช่", "he_audio_id": "he_yes_1", "th_audio_id": "th_yes_1", "panel": "manager", "is_urgent": false },
-            { "id": "manager_no_1", "display_text": "לא", "icon": "�", "he_text": "לא.", "th_text": "ไม่", "he_audio_id": "he_no_1", "th_audio_id": "th_no_1", "panel": "manager", "is_urgent": false },
+            { "id": "manager_no_1", "display_text": "לא", "icon": "👎", "he_text": "לא.", "th_text": "ไม่", "he_audio_id": "he_no_1", "th_audio_id": "th_no_1", "panel": "manager", "is_urgent": false },
             { "id": "manager_wait_a_minute", "display_text": "חכה דקה", "icon": "⏱️", "he_text": "חכה דקה.", "th_text": "รอสักครู่", "he_audio_id": "he_wait_a_minute", "th_audio_id": "th_wait_a_minute", "panel": "manager", "is_urgent": false },
             { "id": "manager_clean_floor", "display_text": "נקה רצפה", "icon": "🧹", "he_text": "תנקה את הרצפה.", "th_text": "ทำความสะอาดพื้น", "he_audio_id": "he_clean_floor", "th_audio_id": "th_clean_floor", "panel": "manager", "is_urgent": false },
             { "id": "manager_come_here_now", "display_text": "בוא לכאן מיד", "icon": "🏃", "he_text": "בוא לכאן מיד!", "th_text": "มานี่เดี๋ยวนี้!", "he_audio_id": "he_come_here_now", "th_audio_id": "th_come_here_now", "panel": "manager", "is_urgent": true },
             { "id": "manager_start_working", "display_text": "תתחיל לעבוד", "icon": "⚙️", "he_text": "תתחיל לעבוד.", "th_text": "เริ่มทำงาน", "he_audio_id": "he_start_working", "th_audio_id": "th_start_working", "panel": "manager", "is_urgent": false },
-            { "id": "manager_customer_is_waiting", "display_text": "לקוח מחכה", "icon": "👨‍💼", "he_text": "לקוח מחכה.", "th_text": "ลูกค้ารออยู่", "he_audio_id": "he_customer_is_waiting", "th_audio_id": "th_customer_is_waiting", "panel": "manager", "is_urgent": false }
+            { "id": "manager_customer_is_waiting", "display_text": "לקוח מחכה", "icon": "👨‍�", "he_text": "לקוח מחכה.", "th_text": "ลูกค้ารออยู่", "he_audio_id": "he_customer_is_waiting", "th_audio_id": "th_customer_is_waiting", "panel": "manager", "is_urgent": false }
         ];
 
         // רשימת משפטים לתרגום מיידי (קבועים ב-JS)
@@ -659,7 +659,7 @@
                     showPopup(textToShow, audioData, lang, isUrgent);
                 };
 
-                // הטמעת הספירה לאחור על הכפתור (8 שניות)
+                // הטמעת הספירה לאחור על הכפתור (3 שניות)
                 // הלחיצה תציג תרגום על המסך הראשי ותפעיל ספירה לאחור
                 button.onclick = () => {
                     // הצג את התרגום על המסך הראשי מיד
@@ -668,7 +668,7 @@
                     updateMainTranslationDisplay(displayTranslationText, displayLang);
 
                     // התחל את הספירה לאחור של הכפתור
-                    startCountdownOnButton(button, phrase.display_text || phrase.he_text, 8, actionCallback);
+                    startCountdownOnButton(button, phrase.display_text || phrase.he_text, 3, actionCallback);
                 };
             });
         }
@@ -697,7 +697,7 @@
 
                 // כפתורים אלו יתרגמו ויוצגו במסך הראשי
                 const actionCallback = () => translateAndDisplayInstant(phraseText, 'he', 'th', false, mainDisplayText);
-                button.onclick = () => startCountdownOnButton(button, phraseText, 8, actionCallback); // 8 שניות
+                button.onclick = () => startCountdownOnButton(button, phraseText, 3, actionCallback); // 3 שניות
                 instantPhrasesHePanel.appendChild(button);
             });
 
@@ -715,7 +715,7 @@
 
                 // כפתורים אלו יתרגמו ויוצגו במסך הראשי
                 const actionCallback = () => translateAndDisplayInstant(phraseText, 'th', 'he', false, mainDisplayText);
-                button.onclick = () => startCountdownOnButton(button, phraseText, 8, actionCallback); // 8 שניות
+                button.onclick = () => startCountdownOnButton(button, phraseText, 3, actionCallback); // 3 שניות
                 instantPhrasesThPanel.appendChild(button);
             });
         }
@@ -745,7 +745,7 @@
 
                 // כפתורים אלו יתרגמו ויוצגו במסך הראשי
                 const actionCallback = () => translateAndDisplayInstant(phraseText, 'he', 'th', true, mainDisplayText); // הוסף true כדי לציין שזה מספר
-                button.onclick = () => startCountdownOnButton(button, displayText, 8, actionCallback); // 8 שניות
+                button.onclick = () => startCountdownOnButton(button, displayText, 3, actionCallback); // 3 שניות
                 numberPhrasesHePanel.appendChild(button);
             });
 
@@ -764,7 +764,7 @@
 
                 // כפתורים אלו יתרגמו ויוצגו במסך הראשי
                 const actionCallback = () => translateAndDisplayInstant(phraseText, 'th', 'he', true, mainDisplayText); // הוסף true כדי לציין שזה מספר
-                button.onclick = () => startCountdownOnButton(button, displayText, 8, actionCallback); // 8 שניות
+                button.onclick = () => startCountdownOnButton(button, displayText, 3, actionCallback); // 3 שניות
                 numberPhrasesThPanel.appendChild(button);
             });
         }
