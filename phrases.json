@@ -1,0 +1,65 @@
+[
+  {
+    "id": "thai_break_request_1",
+    "he_text": "אני רוצה הפסקה.",
+    "th_text": "ผม/ฉัน ขอพัก",
+    "th_phonetic": "Phom/Chan khaw phak",
+    "he_audio_file": "he_break_1.mp3",
+    "th_audio_file": "th_break_1.mp3",
+    "panel": "thai_worker"
+  },
+  {
+    "id": "thai_break_request_2",
+    "he_text": "אני צריך לשירותים.",
+    "th_text": "ผม/ฉัน ต้องการไปห้องน้ำ",
+    "th_phonetic": "Phom/Chan tong kan pai hong nam",
+    "he_audio_file": "he_toilet_1.mp3",
+    "th_audio_file": "th_toilet_1.mp3",
+    "panel": "thai_worker"
+  },
+  {
+    "id": "thai_help_request_1",
+    "he_text": "אני צריך עזרה.",
+    "th_text": "ผม/ฉัน ต้องการความช่วยเหลือ",
+    "th_phonetic": "Phom/Chan tong kan kwam chuay leua",
+    "he_audio_file": "he_help_1.mp3",
+    "th_audio_file": "th_help_1.mp3",
+    "panel": "thai_worker"
+  },
+  {
+    "id": "manager_instruction_1",
+    "he_text": "תעמיס ללקוח על האוטו.",
+    "th_text": "ช่วยขนของขึ้นรถให้ลูกค้าหน่อย",
+    "th_phonetic": "Chuay khon khong khuen rot hai luk khaa noy",
+    "he_audio_file": "he_load_car_1.mp3",
+    "th_audio_file": "th_load_car_1.mp3",
+    "panel": "manager"
+  },
+  {
+    "id": "manager_instruction_2",
+    "he_text": "תבוא תסדר את האזור הזה.",
+    "th_text": "มาจัดระเบียบพื้นที่นี้หน่อย",
+    "th_phonetic": "Maa jat ra biap peun tee nee noy",
+    "he_audio_file": "he_organize_area_1.mp3",
+    "th_audio_file": "th_organize_area_1.mp3",
+    "panel": "manager"
+  },
+  {
+    "id": "manager_instruction_3",
+    "he_text": "תנקה את השולחן.",
+    "th_text": "ทำความสะอาดโต๊ะ",
+    "th_phonetic": "Tham kwam sa-at dto",
+    "he_audio_file": "he_clean_table_1.mp3",
+    "th_audio_file": "th_clean_table_1.mp3",
+    "panel": "manager"
+  },
+  {
+    "id": "manager_instruction_4",
+    "he_text": "תסיים את העבודה עכשיו.",
+    "th_text": "ทำงานให้เสร็จเดี๋ยวนี้",
+    "th_phonetic": "Tham ngan hai set diao nee",
+    "he_audio_file": "he_finish_now_1.mp3",
+    "th_audio_file": "th_finish_now_1.mp3",
+    "panel": "manager"
+  }
+]
