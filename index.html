@@ -98,7 +98,7 @@
             animation: urgent-pulse 1s infinite alternate; /* אנימציה מתחלפת ואגרסיבית יותר */
         }
 
-        /* אנימציית ברק וקשת צבעים למשפט מתורגם מיידי */
+        /* אנימציית ברק וקשת צבעים למסך התרגום הראשי */
         @keyframes rainbow-glow {
             0% { border-color: #ff0000; box-shadow: 0 0 15px #ff0000; }
             16% { border-color: #ff7f00; box-shadow: 0 0 15px #ff7f00; }
@@ -159,9 +159,47 @@
             border: 3px solid transparent; /* גבול התחלתי שקוף לאנימציה */
             animation: border-sparkle 1s infinite alternate; /* אנימציית הברקה על הגבול */
         }
+
+        /* סגנון למסך התרגום הראשי החדש */
+        #mainTranslationDisplay {
+            min-height: 150px; /* גובה מינימלי למסך */
+            background-color: rgba(255, 255, 255, 0.8);
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0 10px 40px 0 rgba(31, 38, 135, 0.4);
+            border-radius: 25px;
+            font-size: 3.5rem; /* גודל פונט גדול במיוחד */
+            font-weight: 700; /* בולד */
+            color: #333;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 20px;
+            overflow: hidden; /* למקרה של גלישת טקסט באנימציית הקלדה */
+            position: relative;
+            z-index: 10; /* וודא שהוא מעל שאר התוכן */
+        }
+        /* התאמות למסכים קטנים עבור המסך הראשי */
+        @media (max-width: 768px) {
+            #mainTranslationDisplay {
+                font-size: 2.5rem; /* קטן יותר לנייד */
+                min-height: 120px;
+            }
+        }
+        @media (max-width: 480px) {
+            #mainTranslationDisplay {
+                font-size: 1.8rem;
+                min-height: 100px;
+            }
+        }
     </style>
 </head>
 <body class="bg-gradient-to-br from-blue-100 to-white min-h-screen flex flex-col items-center p-6 space-y-8">
+
+    <!-- מסך תרגום ראשי דינמי -->
+    <div id="mainTranslationDisplay" class="w-full max-w-4xl glass-panel">
+        <span id="mainDisplayText"></span>
+    </div>
 
     <div class="w-full max-w-7xl flex flex-wrap lg:flex-nowrap justify-center gap-8">
         <!-- פאנל עובד תאילנדי - בקשות למנהל -->
@@ -181,7 +219,7 @@
         </div>
     </div>
 
-    <!-- פאנל משפטי תרגום מיידי -->
+    <!-- פאנל משפטי תרגום מיידי (הוחזר למקומו המקורי כאזור משני) -->
     <div class="glass-panel p-8 w-full max-w-7xl flex flex-col items-center">
         <h2 class="text-3xl font-bold text-gray-800 mb-6">משפטי תרגום מיידי</h2>
         <div class="flex flex-wrap justify-center gap-4 mb-8 w-full">
@@ -214,9 +252,9 @@
                 </div>
             </div>
         </div>
-        <!-- אזור להצגת המשפט המתורגם המיידי -->
+        <!-- אזור להצגת המשפט המתורגם המיידי - נשאר עבור תרגום מהיר של כפתורים אלו -->
         <div id="instantTranslationOutput" class="mt-8 p-6 text-2xl font-bold text-gray-900 bg-gray-50 rounded-2xl border-4 border-transparent min-h-[100px] flex items-center justify-center w-full max-w-2xl text-center shadow-lg transition-all duration-300">
-            המשפט המתורגם יופיע כאן
+            המשפט המתורגם יופיע כאן (תרגום מיידי מכפתורים).
         </div>
     </div>
 
@@ -277,6 +315,9 @@
 
         // אלמנטים של תרגום מיידי
         const instantTranslationOutput = document.getElementById('instantTranslationOutput');
+        const mainTranslationDisplay = document.getElementById('mainTranslationDisplay');
+        const mainDisplayText = document.getElementById('mainDisplayText');
+
 
         // הגדרות מקלדת וירטואלית SimpleKeyboard
         let keyboard;
@@ -468,8 +509,8 @@
             { "id": "manager_go_to_lunch_1", "display_text": "לך לאכול", "icon": "🥪", "he_text": "לך לאכול צהריים.", "th_text": "ไปทานอาหารกลางวัน", "he_audio_id": "he_go_to_lunch_1", "th_audio_id": "th_go_to_lunch_1", "panel": "manager", "is_urgent": false },
             { "id": "manager_come_back_tomorrow_1", "display_text": "תחזור מחר", "icon": "🗓️", "he_text": "תחזור מחר בבוקר.", "th_text": "กลับมาพรุ่งนี้เช้า", "he_audio_id": "he_come_back_tomorrow_1", "th_audio_id": "th_come_back_tomorrow_1", "panel": "manager", "is_urgent": false },
             { "id": "manager_please_1", "display_text": "בבקשה", "icon": "🙏", "he_text": "בבקשה.", "th_text": "โปรด", "he_audio_id": "he_please_1", "th_audio_id": "th_please_1", "panel": "manager", "is_urgent": false },
-            { "id": "manager_yes_1", "display_text": "כן", "icon": "�", "he_text": "כן.", "th_text": "ใช่", "he_audio_id": "he_yes_1", "th_audio_id": "th_yes_1", "panel": "manager", "is_urgent": false },
-            { "id": "manager_no_1", "display_text": "לא", "icon": "👎", "he_text": "לא.", "th_text": "ไม่", "he_audio_id": "he_no_1", "th_audio_id": "th_no_1", "panel": "manager", "is_urgent": false },
+            { "id": "manager_yes_1", "display_text": "כן", "icon": "👍", "he_text": "כן.", "th_text": "ใช่", "he_audio_id": "he_yes_1", "th_audio_id": "th_yes_1", "panel": "manager", "is_urgent": false },
+            { "id": "manager_no_1", "display_text": "לא", "icon": "�", "he_text": "לא.", "th_text": "ไม่", "he_audio_id": "he_no_1", "th_audio_id": "th_no_1", "panel": "manager", "is_urgent": false },
             { "id": "manager_wait_a_minute", "display_text": "חכה דקה", "icon": "⏱️", "he_text": "חכה דקה.", "th_text": "รอสักครู่", "he_audio_id": "he_wait_a_minute", "th_audio_id": "th_wait_a_minute", "panel": "manager", "is_urgent": false },
             { "id": "manager_clean_floor", "display_text": "נקה רצפה", "icon": "🧹", "he_text": "תנקה את הרצפה.", "th_text": "ทำความสะอาดพื้น", "he_audio_id": "he_clean_floor", "th_audio_id": "th_clean_floor", "panel": "manager", "is_urgent": false },
             { "id": "manager_come_here_now", "display_text": "בוא לכאן מיד", "icon": "🏃", "he_text": "בוא לכאן מיד!", "th_text": "มานี่เดี๋ยวนี้!", "he_audio_id": "he_come_here_now", "th_audio_id": "th_come_here_now", "panel": "manager", "is_urgent": true },
@@ -565,20 +606,25 @@
                 button.classList.add(
                     'flex', 'flex-col', 'items-center', 'justify-center', 'px-4', 'py-4', 'rounded-2xl', 'font-semibold',
                     'shadow-lg', 'hover:shadow-xl', 'transition-all', 'duration-200', 'active:scale-95',
-                    'text-xl', 'text-white', 'text-center', 'min-h-[120px]', 'space-y-2' // רווח בין האייקון לטקסט
+                    'text-white', 'text-center', 'min-h-[120px]', 'space-y-1', 'overflow-hidden' // רווח קטן יותר, הסתרת גלישה
                 );
 
                 const iconSpan = document.createElement('span');
                 iconSpan.textContent = phrase.icon || ''; // הוסף אייקון אם קיים
-                iconSpan.classList.add('text-4xl'); // גודל גדול לאייקון
+                iconSpan.classList.add('text-4xl', 'mb-1'); // גודל גדול לאייקון, מרווח תחתון קטן
 
+                // יצירת אלמנטים לטקסטים בעברית ובתאית
                 const heTextSpan = document.createElement('span');
                 heTextSpan.textContent = phrase.display_text || phrase.he_text; // טקסט הכפתור בעברית
-                heTextSpan.classList.add('original-text'); // קלאס לזיהוי הטקסט המקורי
+                heTextSpan.classList.add('original-text', 'text-xl', 'font-bold'); // גודל פונט לעברית
+
+                const thTextSpan = document.createElement('span');
+                thTextSpan.textContent = phrase.th_text; // טקסט בתאית
+                thTextSpan.classList.add('thai-text', 'text-sm', 'opacity-90', 'mt-1'); // פונט תאית, גודל קטן יותר, שקיפות קלה
 
                 button.appendChild(iconSpan);
                 button.appendChild(heTextSpan);
-
+                
                 let audioData;
                 let textToShow;
                 let lang;
@@ -586,11 +632,7 @@
 
                 if (phrase.panel === 'thai_worker') {
                     // כפתור לעובד תאילנדי: מציג טקסט עברי קצר + טקסט תאית, בלחיצה משמיע עברית למנהל, מציג פופאפ בעברית
-                    const thTextSpan = document.createElement('span');
-                    thTextSpan.textContent = phrase.th_text; // טקסט בתאית
-                    thTextSpan.classList.add('thai-text', 'text-sm', 'opacity-80'); // פונט תאית, גודל קטן יותר, שקיפות
-                    button.appendChild(thTextSpan);
-
+                    button.appendChild(thTextSpan); // הוסף את התאית רק לכפתורי העובד
                     button.classList.add('bg-green-600', 'hover:bg-green-700'); // צבע ירוק לעובד
                     audioData = base64AudioData[phrase.he_audio_id];
                     textToShow = phrase.he_text;
@@ -599,6 +641,8 @@
                     thaiWorkerPanel.appendChild(button);
                 } else if (phrase.panel === 'manager') {
                     // כפתור למנהל: מציג טקסט עברי קצר, בלחיצה משמיע תאית לעובד, מציג פופאפ בתאית
+                    // עבור כפתורי מנהל, נציג רק את הטקסט בעברית על הכפתור, והתרגום לפופאפ.
+                    // thTextSpan לא נוסף כאן.
                     button.classList.add('bg-blue-600', 'hover:bg-blue-700'); // צבע כחול למנהל
                     audioData = base64AudioData[phrase.th_audio_id];
                     textToShow = phrase.th_text;
@@ -616,7 +660,16 @@
                 };
 
                 // הטמעת הספירה לאחור על הכפתור (8 שניות)
-                button.onclick = () => startCountdownOnButton(button, phrase.display_text || phrase.he_text, 8, actionCallback);
+                // הלחיצה תציג תרגום על המסך הראשי ותפעיל ספירה לאחור
+                button.onclick = () => {
+                    // הצג את התרגום על המסך הראשי מיד
+                    let displayLang = (phrase.panel === 'thai_worker' ? 'he' : 'th'); // עובד רוצה לדבר עברית, מנהל רוצה לדבר תאית
+                    let displayTranslationText = (phrase.panel === 'thai_worker' ? phrase.he_text : phrase.th_text);
+                    updateMainTranslationDisplay(displayTranslationText, displayLang);
+
+                    // התחל את הספירה לאחור של הכפתור
+                    startCountdownOnButton(button, phrase.display_text || phrase.he_text, 8, actionCallback);
+                };
             });
         }
 
@@ -636,13 +689,14 @@
                 button.classList.add(
                     'flex', 'items-center', 'justify-center', 'px-4', 'py-3', 'rounded-lg', 'font-medium',
                     'shadow-md', 'hover:shadow-lg', 'transition-all', 'duration-200', 'active:scale-95',
-                    'text-lg', 'text-white', 'text-center',
+                    'text-lg', 'text-white', 'text-center', 'min-h-[70px]', // גובה מינימלי לכפתור
                     'bg-indigo-500', 'hover:bg-indigo-600' // צבעי כפתורים למשפטים מיידיים
                 );
                 button.textContent = phraseText;
                 button.classList.add('original-text'); // קלאס לזיהוי הטקסט המקורי
 
-                const actionCallback = () => translateAndDisplayInstant(phraseText, 'he', 'th');
+                // כפתורים אלו יתרגמו ויוצגו במסך הראשי
+                const actionCallback = () => translateAndDisplayInstant(phraseText, 'he', 'th', false, mainDisplayText);
                 button.onclick = () => startCountdownOnButton(button, phraseText, 8, actionCallback); // 8 שניות
                 instantPhrasesHePanel.appendChild(button);
             });
@@ -653,13 +707,14 @@
                 button.classList.add(
                     'flex', 'items-center', 'justify-center', 'px-4', 'py-3', 'rounded-lg', 'font-medium',
                     'shadow-md', 'hover:shadow-lg', 'transition-all', 'duration-200', 'active:scale-95',
-                    'text-lg', 'text-white', 'text-center',
+                    'text-lg', 'text-white', 'text-center', 'min-h-[70px]', // גובה מינימלי לכפתור
                     'bg-purple-500', 'hover:bg-purple-600', 'thai-text' // צבעים ופונט לתאית
                 );
                 button.textContent = phraseText;
                 button.classList.add('original-text'); // קלאס לזיהוי הטקסט המקורי
 
-                const actionCallback = () => translateAndDisplayInstant(phraseText, 'th', 'he');
+                // כפתורים אלו יתרגמו ויוצגו במסך הראשי
+                const actionCallback = () => translateAndDisplayInstant(phraseText, 'th', 'he', false, mainDisplayText);
                 button.onclick = () => startCountdownOnButton(button, phraseText, 8, actionCallback); // 8 שניות
                 instantPhrasesThPanel.appendChild(button);
             });
@@ -682,13 +737,14 @@
                 button.classList.add(
                     'flex', 'items-center', 'justify-center', 'px-4', 'py-3', 'rounded-lg', 'font-medium',
                     'shadow-md', 'hover:shadow-lg', 'transition-all', 'duration-200', 'active:scale-95',
-                    'text-xl', 'text-white', 'text-center',
+                    'text-xl', 'text-white', 'text-center', 'min-h-[70px]', // גובה מינימלי לכפתור
                     'bg-pink-500', 'hover:bg-pink-600' // צבעי כפתורים למספרים
                 );
                 button.textContent = displayText;
                 button.classList.add('original-text'); // קלאס לזיהוי הטקסט המקורי
 
-                const actionCallback = () => translateAndDisplayInstant(phraseText, 'he', 'th', true); // הוסף true כדי לציין שזה מספר
+                // כפתורים אלו יתרגמו ויוצגו במסך הראשי
+                const actionCallback = () => translateAndDisplayInstant(phraseText, 'he', 'th', true, mainDisplayText); // הוסף true כדי לציין שזה מספר
                 button.onclick = () => startCountdownOnButton(button, displayText, 8, actionCallback); // 8 שניות
                 numberPhrasesHePanel.appendChild(button);
             });
@@ -700,13 +756,14 @@
                 button.classList.add(
                     'flex', 'items-center', 'justify-center', 'px-4', 'py-3', 'rounded-lg', 'font-medium',
                     'shadow-md', 'hover:shadow-lg', 'transition-all', 'duration-200', 'active:scale-95',
-                    'text-xl', 'text-white', 'text-center',
+                    'text-xl', 'text-white', 'text-center', 'min-h-[70px]', // גובה מינימלי לכפתור
                     'bg-teal-500', 'hover:bg-teal-600', 'thai-text' // צבעים ופונט לתאית
                 );
                 button.textContent = displayText;
                 button.classList.add('original-text'); // קלאס לזיהוי הטקסט המקורי
 
-                const actionCallback = () => translateAndDisplayInstant(phraseText, 'th', 'he', true); // הוסף true כדי לציין שזה מספר
+                // כפתורים אלו יתרגמו ויוצגו במסך הראשי
+                const actionCallback = () => translateAndDisplayInstant(phraseText, 'th', 'he', true, mainDisplayText); // הוסף true כדי לציין שזה מספר
                 button.onclick = () => startCountdownOnButton(button, displayText, 8, actionCallback); // 8 שניות
                 numberPhrasesThPanel.appendChild(button);
             });
@@ -743,7 +800,8 @@
                     button.innerHTML = originalContent;
                     // הסר את הקלאסים של הספירה לאחור והחזר את הקלאסים המקוריים
                     button.classList.remove('countdown-button');
-                    button.classList.add(...originalClasses); // החזר את הקלאסים המקוריים
+                    // השחזר את כל הקלאסים המקוריים (זה יכלול את צבעי הכפתור המקוריים וכו')
+                    button.classList.add(...originalClasses); 
                     
                     button.disabled = false; // הפעל מחדש את הכפתור
                     callback(); // הפעל את הפונקציה המקורית
@@ -887,12 +945,12 @@
          * @param {string} sourceLang - שפת המקור (he/th).
          * @param {string} targetLang - שפת היעד (he/th).
          * @param {boolean} isNumberTranslation - האם זהו תרגום מספרים (לשם קביעת הקונטקסט ל-LLM).
+         * @param {HTMLElement} [outputElement=mainDisplayText] - האלמנט אליו יוצג התרגום. ברירת מחדל: המסך הראשי.
          */
-        async function translateAndDisplayInstant(text, sourceLang, targetLang, isNumberTranslation = false) {
-            instantTranslationOutput.textContent = "מתרגם..."; // הצג הודעת טעינה
-            instantTranslationOutput.classList.remove('rainbow-border'); // הסר את האנימציה הקודמת
-            instantTranslationOutput.classList.remove('typing-effect'); // הסר אפקט הקלדה קודם
-            instantTranslationOutput.classList.remove('thai-text'); // נקה קלאס פונט תאית
+        async function translateAndDisplayInstant(text, sourceLang, targetLang, isNumberTranslation = false, outputElement = mainDisplayText) {
+            outputElement.textContent = "מתרגם..."; // הצג הודעת טעינה
+            outputElement.classList.remove('rainbow-border', 'typing-effect', 'thai-text'); // הסר אנימציות וקלאסים קודמים
+            mainTranslationDisplay.classList.remove('rainbow-border'); // וודא שזה לא נשאר מהפעלה קודמת
 
             const apiKey = ""; // API Key יסופק אוטומטית ע"י Canvas בזמן ריצה
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
@@ -935,8 +993,7 @@
                 }
 
                 const result = await response.json();
-                let translatedText = "לא נמצא תרגום"; // ברירת מחדל
-
+                let translatedText = "שגיאה בתרגום או טקסט לא נמצא"; // ברירת מחדל
                 if (result.candidates && result.candidates.length > 0 &&
                     result.candidates[0].content && result.candidates[0].content.parts &&
                     result.candidates[0].content.parts.length > 0) {
@@ -945,28 +1002,39 @@
                     translatedText = parsedJson.translated_text;
                 } else {
                     console.warn("מבנה תגובת ה-Gemini API אינו צפוי או שהתוכן חסר.");
+                    translatedText = "שגיאה: תוכן תרגום חסר";
                 }
 
                 // הפעל אפקט הקלדה והצג את הטקסט
-                instantTranslationOutput.textContent = ''; // נקה טקסט קיים
-                instantTranslationOutput.classList.add('typing-effect'); // הוסף אפקט קלדה
+                outputElement.textContent = ''; // נקה טקסט קיים
+                outputElement.classList.add('typing-effect'); // הוסף אפקט קלדה
                 if (targetLang === 'th') {
-                    instantTranslationOutput.classList.add('thai-text'); // הוסף פונט תאית אם צריך
+                    outputElement.classList.add('thai-text'); // הוסף פונט תאית אם צריך
+                    outputElement.style.direction = 'ltr'; // כיוון כתיבה משמאל לימין
+                } else {
+                    outputElement.style.direction = 'rtl'; // כיוון כתיבה מימין לשמאל
                 }
 
                 let i = 0;
                 const typingInterval = setInterval(() => {
                     if (i < translatedText.length) {
-                        instantTranslationOutput.textContent += translatedText.charAt(i);
+                        outputElement.textContent += translatedText.charAt(i);
                         i++;
                     } else {
                         clearInterval(typingInterval);
-                        instantTranslationOutput.classList.remove('typing-effect'); // הסר אפקט קלדה בסיום
-                        instantTranslationOutput.classList.add('rainbow-border'); // הוסף אנימציה בסיום
-                        // הסר את האנימציה לאחר כמה שניות
-                        setTimeout(() => {
-                            instantTranslationOutput.classList.remove('rainbow-border');
-                        }, 3000); // 3 שניות
+                        outputElement.classList.remove('typing-effect'); // הסר אפקט קלדה בסיום
+                        // הוסף את אנימציית הברקה למסך הראשי
+                        if (outputElement === mainDisplayText) {
+                            mainTranslationDisplay.classList.add('rainbow-border');
+                            setTimeout(() => {
+                                mainTranslationDisplay.classList.remove('rainbow-border');
+                            }, 3000); // 3 שניות
+                        } else {
+                            outputElement.classList.add('rainbow-border'); // עבור אזור תרגום מיידי
+                            setTimeout(() => {
+                                outputElement.classList.remove('rainbow-border');
+                            }, 3000); // 3 שניות
+                        }
                     }
                 }, 50); // מהירות הקלדה
 
@@ -975,11 +1043,47 @@
 
             } catch (error) {
                 console.error("שגיאה בתרגום טקסט באמצעות Gemini API:", error);
-                instantTranslationOutput.textContent = `שגיאה בתרגום: ${error.message}`;
-                instantTranslationOutput.classList.remove('typing-effect');
-                instantTranslationOutput.classList.remove('rainbow-border');
+                outputElement.textContent = `שגיאה בתרגום: ${error.message}`;
+                outputElement.classList.remove('typing-effect', 'rainbow-border');
+                mainTranslationDisplay.classList.remove('rainbow-border'); // וודא הסרה גם מהמסך הראשי במקרה של שגיאה
             }
         }
+
+        /**
+         * פונקציה לעדכון הטקסט המוצג במסך התרגום הראשי.
+         * @param {string} text - הטקסט להצגה.
+         * @param {string} lang - השפה של הטקסט ('he' לעברית, 'th' לתאית).
+         */
+        function updateMainTranslationDisplay(text, lang) {
+            mainDisplayText.textContent = ''; // נקה טקסט קיים
+            mainDisplayText.classList.remove('typing-effect', 'thai-text');
+            mainTranslationDisplay.classList.remove('rainbow-border'); // הסר כל אנימציה קודמת
+
+            if (lang === 'th') {
+                mainDisplayText.classList.add('thai-text');
+                mainDisplayText.style.direction = 'ltr';
+            } else {
+                mainDisplayText.classList.remove('thai-text');
+                mainDisplayText.style.direction = 'rtl';
+            }
+
+            mainDisplayText.classList.add('typing-effect');
+            let i = 0;
+            const typingInterval = setInterval(() => {
+                if (i < text.length) {
+                    mainDisplayText.textContent += text.charAt(i);
+                    i++;
+                } else {
+                    clearInterval(typingInterval);
+                    mainDisplayText.classList.remove('typing-effect');
+                    mainTranslationDisplay.classList.add('rainbow-border'); // הוסף אנימציית ברק
+                    setTimeout(() => {
+                        mainTranslationDisplay.classList.remove('rainbow-border');
+                    }, 3000); // הסר אחרי 3 שניות
+                }
+            }, 50); // מהירות הקלדה
+        }
+
 
         // אתחול מקלדת SimpleKeyboard
         const freeTextInput = document.getElementById('freeTextInput');
@@ -1045,7 +1149,7 @@
             const textToTranslate = freeTextInput.value.trim();
             if (!textToTranslate) {
                 console.log("אין טקסט לתרגום והשמעה.");
-                instantTranslationOutput.textContent = "הקלד/י טקסט לתרגום"; // עדכן הודעה
+                updateMainTranslationDisplay("הקלד/י טקסט לתרגום", "he"); // עדכן הודעה במסך הראשי
                 return;
             }
 
@@ -1059,91 +1163,8 @@
                 targetLang = 'he';
             }
 
-            instantTranslationOutput.textContent = "מתרגם..."; // עדכן הודעה
-            instantTranslationOutput.classList.remove('rainbow-border');
-            instantTranslationOutput.classList.remove('typing-effect');
-            instantTranslationOutput.classList.remove('thai-text');
-
-            const apiKey = ""; // API Key יסופק אוטומטית ע"י Canvas בזמן ריצה
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
-
-            let sourceLangName = sourceLang === 'he' ? 'Hebrew' : 'Thai';
-            let targetLangName = targetLang === 'he' ? 'Hebrew' : 'Thai';
-            const prompt = `Translate the following text from ${sourceLangName} to ${targetLangName}: '${textToTranslate}'. Provide only the translated text.`;
-
-            let chatHistory = [];
-            chatHistory.push({ role: "user", parts: [{ text: prompt }] });
-
-            const payload = {
-                contents: chatHistory,
-                generationConfig: {
-                    responseMimeType: "application/json",
-                    responseSchema: {
-                        type: "OBJECT",
-                        properties: {
-                            "translated_text": { "type": "STRING" }
-                        },
-                        "propertyOrdering": ["translated_text"]
-                    }
-                }
-            };
-
-            try {
-                const response = await fetch(apiUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(`שגיאת שרת מה-Gemini API: ${response.status} - ${errorData.error.message || response.statusText}`);
-                }
-
-                const result = await response.json();
-                let translatedText = "לא נמצא תרגום"; // ברירת מחדל
-
-                if (result.candidates && result.candidates.length > 0 &&
-                    result.candidates[0].content && result.candidates[0].content.parts &&
-                    result.candidates[0].content.parts.length > 0) {
-                    const jsonString = result.candidates[0].content.parts[0].text;
-                    const parsedJson = JSON.parse(jsonString);
-                    translatedText = parsedJson.translated_text;
-                } else {
-                    console.warn("מבנה תגובת ה-Gemini API אינו צפוי או שהתוכן חסר.");
-                }
-
-                // הצג את הטקסט המתורגם
-                instantTranslationOutput.textContent = '';
-                instantTranslationOutput.classList.add('typing-effect');
-                if (targetLang === 'th') {
-                    instantTranslationOutput.classList.add('thai-text');
-                }
-
-                let i = 0;
-                const typingInterval = setInterval(() => {
-                    if (i < translatedText.length) {
-                        instantTranslationOutput.textContent += translatedText.charAt(i);
-                        i++;
-                    } else {
-                        clearInterval(typingInterval);
-                        instantTranslationOutput.classList.remove('typing-effect');
-                        instantTranslationOutput.classList.add('rainbow-border');
-                        setTimeout(() => {
-                            instantTranslationOutput.classList.remove('rainbow-border');
-                        }, 3000);
-                    }
-                }, 50);
-
-                // הערה: ה-Gemini API (gemini-2.0-flash) אינו מספק אודיו עבור תרגומי טקסט חופשי.
-                // אם תרצה/י יכולות TTS עבור תרגומים חופשיים, תצטרך/י לשלב שירות TTS נפרד.
-
-            } catch (error) {
-                console.error("שגיאה בתרגום חופשי באמצעות Gemini API:", error);
-                instantTranslationOutput.textContent = `שגיאה: ${error.message}`;
-                instantTranslationOutput.classList.remove('typing-effect');
-                instantTranslationOutput.classList.remove('rainbow-border');
-            }
+            // השתמש ב-mainTranslationDisplay עבור תרגום חופשי
+            translateAndDisplayInstant(textToTranslate, sourceLang, targetLang, false, mainDisplayText);
         });
 
         // טען את המשפטים עם טעינת הדף
