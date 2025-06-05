@@ -1,6 +1,7 @@
 [
   {
     "id": "thai_break_request_1",
+    "display_text": "הפסקה?",
     "he_text": "אני רוצה הפסקה.",
     "th_text": "ผม/ฉัน ขอพัก",
     "th_phonetic": "Phom/Chan khaw phak",
@@ -10,6 +11,7 @@
   },
   {
     "id": "thai_break_request_2",
+    "display_text": "שירותים?",
     "he_text": "אני צריך לשירותים.",
     "th_text": "ผม/ฉัน ต้องการไปห้องน้ำ",
     "th_phonetic": "Phom/Chan tong kan pai hong nam",
@@ -19,6 +21,7 @@
   },
   {
     "id": "thai_help_request_1",
+    "display_text": "עזרה?",
     "he_text": "אני צריך עזרה.",
     "th_text": "ผม/ฉัน ต้องการความช่วยเหลือ",
     "th_phonetic": "Phom/Chan tong kan kwam chuay leua",
@@ -28,6 +31,7 @@
   },
   {
     "id": "manager_instruction_1",
+    "display_text": "העמס אוטו",
     "he_text": "תעמיס ללקוח על האוטו.",
     "th_text": "ช่วยขนของขึ้นรถให้ลูกค้าหน่อย",
     "th_phonetic": "Chuay khon khong khuen rot hai luk khaa noy",
@@ -37,6 +41,7 @@
   },
   {
     "id": "manager_instruction_2",
+    "display_text": "סדר אזור",
     "he_text": "תבוא תסדר את האזור הזה.",
     "th_text": "มาจัดระเบียบพื้นที่นี้หน่อย",
     "th_phonetic": "Maa jat ra biap peun tee nee noy",
@@ -46,6 +51,7 @@
   },
   {
     "id": "manager_instruction_3",
+    "display_text": "נקה שולחן",
     "he_text": "תנקה את השולחן.",
     "th_text": "ทำความสะอาดโต๊ะ",
     "th_phonetic": "Tham kwam sa-at dto",
@@ -55,6 +61,7 @@
   },
   {
     "id": "manager_instruction_4",
+    "display_text": "סיים עכשיו",
     "he_text": "תסיים את העבודה עכשיו.",
     "th_text": "ทำงานให้เสร็จเดี๋ยวนี้",
     "th_phonetic": "Tham ngan hai set diao nee",
