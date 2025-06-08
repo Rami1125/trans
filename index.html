@@ -31,6 +31,7 @@
             align-items: center;
             padding: 24px; /* הגדל פדינג כללי */
             gap: 32px; /* מרווח גדול יותר בין סקשנים */
+            overflow-x: hidden; /* למנוע גלילה אופקית מיותרת */
         }
 
         /* הסתרת נגן האודיו המובנה של הדפדפן */
@@ -115,6 +116,19 @@
         }
         
         /* אפקט הקלדה */
+        .typing-effect span {
+            border-right: 3px solid; /* סימן הסמן */
+            overflow: hidden; /* לוודא שהטקסט לא גולש לפני שהושלם */
+            white-space: nowrap; /* למנוע שבירת שורות */
+            display: inline-block; /* כדי שה-overflow יעבוד */
+            vertical-align: bottom; /* למנוע רווח מיותר מתחת */
+        }
+
+        .typing-effect span::after {
+            content: ''; /* מונע סמן נוסף ב-after */
+            animation: none; /* מונע אנימציה של סמן על span */
+        }
+
         .typing-effect::after {
             content: '|';
             animation: blink-caret .75s step-end infinite;
@@ -192,13 +206,100 @@
                 min-height: 100px;
             }
         }
+
+        /* אנימציית גדילה וברק לאימוג'י בפופאפ */
+        @keyframes emoji-grow-sparkle {
+            0% { transform: scale(1); filter: drop-shadow(0 0 0 rgba(255, 255, 0, 0)); }
+            50% { transform: scale(1.5); filter: drop-shadow(0 0 20px rgba(255, 255, 0, 0.8)); }
+            100% { transform: scale(1); filter: drop-shadow(0 0 0 rgba(255, 255, 0, 0)); }
+        }
+
+        .emoji-sparkle-animate {
+            animation: emoji-grow-sparkle 0.8s ease-out;
+        }
+
+        /* עיצוב כפתור רגיל ועיצוב דחוף */
+        .phrase-button {
+            @apply flex flex-col items-center justify-center p-4 rounded-xl shadow-lg transition-all duration-200 cursor-pointer text-lg font-semibold text-gray-800 hover:scale-105 transform;
+            min-width: 120px; /* רוחב מינימלי לכפתור */
+            min-height: 100px; /* גובה מינימלי לכפתור */
+            word-break: break-word; /* לשבור מילים ארוכות */
+            text-align: center;
+            background-color: rgba(255, 255, 255, 0.8);
+            border: 2px solid transparent; /* גבול שקוף להתחלה */
+            position: relative; /* עבור מיקום האימוג'י */
+            overflow: hidden; /* לוודא שהאימוג'י לא חורג מהכפתור */
+        }
+        .phrase-button .emoji-background { /* שם קלאס חדש לאימוג'י ברקע */
+            font-size: 3rem; /* גודל אימוג'י בכפתור */
+            margin-bottom: 0.5rem;
+            transition: transform 0.2s ease-out;
+            position: absolute; /* אימוג'י כרקע / שכבת על */
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            opacity: 0.2; /* שקיפות לרקע */
+            z-index: 0; /* מתחת לטקסט */
+            filter: grayscale(50%); /* גוון עדין */
+        }
+        .phrase-button .text-content {
+            position: relative;
+            z-index: 1; /* מעל האימוג'י */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%; /* כדי למרכז את הטקסט */
+            padding: 5px; /* פדינג קטן כדי שלא ייגע בגבולות */
+        }
+
+
+        .phrase-button.urgent {
+            @apply bg-red-400 text-white;
+            border-color: rgba(255, 0, 0, 0.6);
+            animation: urgent-pulse 1s infinite alternate;
+        }
+
+        .phrase-button:not(.urgent):hover {
+            background-color: rgba(240, 240, 240, 0.9);
+            border-color: rgba(0, 123, 255, 0.5);
+        }
+
+        /* עיצוב כפתורים של תרגום מיידי */
+        .instant-phrase-button {
+            @apply px-6 py-3 bg-indigo-500 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-600 transition-all text-xl;
+            white-space: nowrap; /* למנוע שבירת שורות */
+        }
+        .instant-phrase-button.thai {
+            @apply thai-text;
+        }
+
+        /* עיצוב כפתורי מספרים */
+        .number-button {
+            @apply px-4 py-2 bg-yellow-400 text-gray-800 font-semibold rounded-lg shadow-md hover:bg-yellow-500 transition-all text-2xl;
+        }
+        .number-button.thai {
+            @apply thai-text;
+        }
+
+        /* פופאפ: סגנון טקסט בתוך הפופאפ */
+        #popupText .hebrew-text {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+        #popupText .thai-text-popup { /* קלאס נפרד לטקסט תאית בפופאפ */
+            font-family: 'Noto Sans Thai', sans-serif;
+            font-size: 2.2rem;
+            color: #4a5568; /* צבע כהה יותר */
+        }
     </style>
 </head>
 <body class="bg-gradient-to-br from-blue-100 to-white min-h-screen flex flex-col items-center p-6 space-y-8">
 
     <!-- מסך תרגום ראשי דינמי -->
     <div id="mainTranslationDisplay" class="w-full max-w-4xl glass-panel">
-        <span id="mainDisplayText"></span>
+        <span id="mainDisplayText">הקלד משהו או בחר משפט...</span>
     </div>
 
     <div class="w-full max-w-7xl flex flex-wrap lg:flex-nowrap justify-center gap-8">
@@ -219,7 +320,7 @@
         </div>
     </div>
 
-    <!-- פאנל משפטי תרגום מיידי (הוחזר למקומו המקורי כאזור משני) -->
+    <!-- פאנל משפטי תרגום מיידי -->
     <div class="glass-panel p-8 w-full max-w-7xl flex flex-col items-center">
         <h2 class="text-3xl font-bold text-gray-800 mb-6">משפטי תרגום מיידי</h2>
         <div class="flex flex-wrap justify-center gap-4 mb-8 w-full">
@@ -262,7 +363,7 @@
     <div class="glass-panel p-8 w-full max-w-7xl flex flex-col items-center">
         <h2 class="text-3xl font-bold text-gray-800 mb-6">תרגום וכתיבה חופשית</h2>
         <textarea id="freeTextInput" placeholder="הקלד כאן טקסט בעברית או בתאית..." rows="4"
-                  class="w-full p-4 mb-6 text-xl border-2 border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 transition-all resize-y shadow-sm"></textarea>
+                    class="w-full p-4 mb-6 text-xl border-2 border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 transition-all resize-y shadow-sm"></textarea>
         <div class="flex flex-wrap justify-center gap-4 mb-8 w-full">
             <button id="setLangHe" class="px-8 py-4 bg-gray-600 text-white font-semibold rounded-lg shadow-md hover:bg-gray-700 transition-all text-xl">
                 הקלד בעברית
@@ -280,14 +381,14 @@
     <!-- חלון פופאפ (Popup) - שכבת על נסתרת שתופיע בלחיצה על כפתור -->
     <div id="popupOverlay" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
         <div id="popupContent" class="glass-panel p-10 flex flex-col items-center justify-center max-w-lg w-11/12 transform scale-0 opacity-0 transition-all duration-300 ease-out relative">
-            <p id="popupText" class="text-4xl font-bold text-center mb-8 text-gray-800"></p>
+            <span id="popupEmoji" class="absolute top-4 left-4 text-5xl hidden"></span>
+            <div id="popupText" class="text-4xl font-bold text-center mb-8 text-gray-800"></div>
             <button id="popupReplayButton" class="px-8 py-4 bg-purple-600 text-white font-semibold rounded-full shadow-lg hover:bg-purple-700 transition-all duration-200 text-2xl">
                 🔊 השמע שוב
             </button>
             <button id="popupCloseButton" class="absolute top-4 right-4 text-gray-500 hover:text-gray-700 text-3xl font-bold">
                 &times;
             </button>
-            <span id="urgentIcon" class="absolute top-4 left-4 text-5xl hidden">🔔</span>
         </div>
     </div>
 
@@ -298,34 +399,35 @@
     <script src="https://cdn.jsdelivr.net/npm/simple-keyboard@latest/build/index.js"></script>
 
     <script>
-        // הערה: ה-SERVER_URL הוסר מכיוון שהתרגום כעת מתבצע ישירות מול ה-Gemini API.
-        // עבור קבצי אודיו של משפטים קבועים, עליך למלא את ה-Base64 בקבצי אודיו אמיתיים.
+        // Note: The SERVER_URL has been removed as translation is now handled directly via the Gemini API.
+        // For static phrase audio files, you MUST populate the Base64 values with your actual audio files.
 
-        let currentAudio = null; // משתנה לשמירה על נגן האודיו הנוכחי
+        let currentAudio = null; // Variable to hold the current audio player instance
 
-        // אלמנטים של הפופאפ ב-HTML
+        // HTML element references for the popup
         const popupOverlay = document.getElementById('popupOverlay');
         const popupContent = document.getElementById('popupContent');
         const popupText = document.getElementById('popupText');
         const popupReplayButton = document.getElementById('popupReplayButton');
         const popupCloseButton = document.getElementById('popupCloseButton');
-        const urgentIcon = document.getElementById('urgentIcon'); // אייקון התראה
-        let popupAudioUrl = ''; // ישמור את ה-URL של האודיו שהושמע בפופאפ
-        let popupCloseTimeout; // משתנה לשמירת הטיים-אאוט של סגירת הפופאפ אוטומטית
+        const popupEmoji = document.getElementById('popupEmoji'); // Emoji icon for the popup
+        let popupAudioUrl = ''; // Stores the audio URL played in the popup
+        let popupCloseTimeout; // Variable to hold the timeout for automatic popup closing
 
-        // אלמנטים של תרגום מיידי
+        // HTML element references for instant translation and main display
         const instantTranslationOutput = document.getElementById('instantTranslationOutput');
         const mainTranslationDisplay = document.getElementById('mainTranslationDisplay');
         const mainDisplayText = document.getElementById('mainDisplayText');
+        const freeTextInput = document.getElementById('freeTextInput');
 
-        // אלמנט צלצול פעמון
+        // Bell sound element
         const bellSound = document.getElementById('bellSound');
 
-        // הגדרות מקלדת וירטואלית SimpleKeyboard
+        // SimpleKeyboard virtual keyboard settings
         let keyboard;
-        let currentKeyboardLayout = 'hebrew'; // ברירת מחדל: עברית
+        let currentKeyboardLayout = 'hebrew'; // Default layout: Hebrew
 
-        // פריסות מקלדת עבור עברית ותאית (דוגמאות בסיסיות)
+        // Keyboard layouts for Hebrew and Thai (basic examples)
         const layoutOptions = {
             'hebrew': {
                 default: [
@@ -350,117 +452,133 @@
                     "{capslock} า ส ด ฟ แ ะั ห โ ค ช",
                     "{shift} ซษ มอ ดบ น เ ท จ ก ็ {shift}",
                     "{space}"
-                ],
-                shift: [
-                    "+ ๑ ๒ ๓ ๔ ๕ ๖ ๗ ๘ ๙ ๐ ฯ ญ ฏ {bksp}",
-                    "{tab} ฎ ฑ ธ ํ ๊ ณ ม ย ณบ ุุ ณข ณค ณง {tab}",
-                    "{capslock} ฟะ หะ กะ ดะ สั ะั น ะร ะล ะอ ะใ {capslock}",
-                    "{shift} ะม ะน ะว ะอ ะร ะส ะฟ ะง ะจ ะค ะล {shift}",
-                    "{space}"
                 ]
             }
         };
 
-        // מאגר קבצי אודיו בפורמט Base64
-        // חשוב: אלו הם קבצי דמה. עליך להחליף את ה-Base64 בקבצי אודיו אמיתיים משלך.
-        // תוכל להשתמש בכלים מקוונים או סקריפטים כדי להמיר קבצי MP3/WAV ל-Base64.
+        // Base64 audio data storage
+        // IMPORTANT: These are dummy files. You MUST replace the Base64 values with your actual audio files.
+        // You can use online tools or scripts to convert MP3/WAV files to Base64.
         const base64AudioData = {
-            "he_break_1": "data:audio/mpeg;base64,TBD_HE_BREAK_1_BASE64_AUDIO_HERE",
-            "th_break_1": "data:audio/mpeg;base64,TBD_TH_BREAK_1_BASE64_AUDIO_HERE",
-            "he_toilet_1": "data:audio/mpeg;base64,TBD_HE_TOILET_1_BASE64_AUDIO_HERE",
-            "th_toilet_1": "data:audio/mpeg;base64,TBD_TH_TOILET_1_BASE64_AUDIO_HERE",
-            "he_help_1": "data:audio/mpeg;base64,TBD_HE_HELP_1_BASE64_AUDIO_HERE",
-            "th_help_1": "data:audio/mpeg;base64,TBD_TH_HELP_1_BASE64_AUDIO_HERE",
-            "he_sick_1": "data:audio/mpeg;base64,TBD_HE_SICK_1_BASE64_AUDIO_HERE",
-            "th_sick_1": "data:audio/mpeg;base64,TBD_TH_SICK_1_BASE64_AUDIO_HERE",
-            "he_load_cement_1": "data:audio/mpeg;base64,TBD_HE_LOAD_CEMENT_1_BASE64_AUDIO_HERE",
-            "th_load_cement_1": "data:audio/mpeg;base64,TBD_TH_LOAD_CEMENT_1_BASE64_AUDIO_HERE",
-            "he_load_bags_1": "data:audio/mpeg;base64,TBD_HE_LOAD_BAGS_1_BASE64_AUDIO_HERE",
-            "th_load_bags_1": "data:audio/mpeg;base64,TBD_TH_LOAD_BAGS_1_BASE64_AUDIO_HERE",
-            "he_help_alaa_1": "data:audio/mpeg;base64,TBD_HE_HELP_ALAA_1_BASE64_AUDIO_HERE",
-            "th_help_alaa_1": "data:audio/mpeg;base64,TBD_TH_HELP_ALAA_1_BASE64_AUDIO_HERE",
-            "he_help_adham_1": "data:audio/mpeg;base64,TBD_HE_HELP_ADHAM_1_BASE64_AUDIO_HERE",
-            "th_help_adham_1": "data:audio/mpeg;base64,TBD_TH_HELP_ADHAM_1_BASE64_AUDIO_HERE",
-            "he_help_store_1": "data:audio/mpeg;base64,TBD_HE_HELP_STORE_1_BASE64_AUDIO_HERE",
-            "th_help_store_1": "data:audio/mpeg;base64,TBD_TH_HELP_STORE_1_BASE64_AUDIO_HERE",
-            "he_next_product_1": "data:audio/mpeg;base64,TBD_HE_NEXT_PRODUCT_1_BASE64_AUDIO_HERE",
-            "th_next_product_1": "data:audio/mpeg;base64,TBD_TH_NEXT_PRODUCT_1_BASE64_AUDIO_HERE",
-            "he_good_morning_1": "data:audio/mpeg;base64,TBD_HE_GOOD_MORNING_1_BASE64_AUDIO_HERE",
-            "th_good_morning_1": "data:audio/mpeg;base64,TBD_TH_GOOD_MORNING_1_BASE64_AUDIO_HERE",
-            "he_good_evening_1": "data:audio/mpeg;base64,TBD_HE_GOOD_EVENING_1_BASE64_AUDIO_HERE",
-            "th_good_evening_1": "data:audio/mpeg;base64,TBD_TH_GOOD_EVENING_1_BASE64_AUDIO_HERE",
-            "he_how_are_you_1": "data:audio/mpeg;base64,TBD_HE_HOW_ARE_YOU_1_BASE64_AUDIO_HERE",
-            "th_how_are_you_1": "data:audio/mpeg;base64,TBD_TH_HOW_ARE_YOU_1_BASE64_AUDIO_HERE",
-            "he_how_do_you_feel_1": "data:audio/mpeg;base64,TBD_HE_HOW_DO_YOU_FEEL_1_BASE64_AUDIO_HERE",
-            "th_how_do_you_feel_1": "data:audio/mpeg;base64,TBD_TH_HOW_DO_YOU_FEEL_1_BASE64_AUDIO_HERE",
-            "he_come_help_loading_1": "data:audio/mpeg;base64,TBD_HE_COME_HELP_LOADING_1_BASE64_AUDIO_HERE",
-            "th_come_help_loading_1": "data:audio/mpeg;base64,TBD_TH_COME_HELP_LOADING_1_BASE64_AUDIO_HERE",
-            "he_need_forklift_1": "data:audio/mpeg;base64,TBD_HE_NEED_FORKLIFT_1_BASE64_AUDIO_HERE",
-            "th_need_forklift_1": "data:audio/mpeg;base64,TBD_TH_NEED_FORKLIFT_1_BASE64_AUDIO_HERE",
-            "he_where_is_it_1": "data:audio/mpeg;base64,TBD_HE_WHERE_IS_IT_1_BASE64_AUDIO_HERE",
-            "th_where_is_it_1": "data:audio/mpeg;base64,TBD_TH_WHERE_IS_IT_1_BASE64_AUDIO_HERE",
-            "he_finished_work_1": "data:audio/mpeg;base64,TBD_HE_FINISHED_WORK_1_BASE64_AUDIO_HERE",
-            "th_finished_work_1": "data:audio/mpeg;base64,TBD_TH_FINISHED_WORK_1_BASE64_AUDIO_HERE",
-            "he_need_water_1": "data:audio/mpeg;base64,TBD_HE_NEED_WATER_1_BASE64_AUDIO_HERE",
-            "th_need_water_1": "data:audio/mpeg;base64,TBD_TH_NEED_WATER_1_BASE64_AUDIO_HERE",
-            "he_hungry_1": "data:audio/mpeg;base64,TBD_HE_HUNGRY_1_BASE64_AUDIO_HERE",
-            "th_hungry_1": "data:audio/mpeg;base64,TBD_TH_HUNGRY_1_BASE64_AUDIO_HERE",
-            "he_thank_you_1": "data:audio/mpeg;base64,TBD_HE_THANK_YOU_1_BASE64_AUDIO_HERE",
-            "th_thank_you_1": "data:audio/mpeg;base64,TBD_TH_THANK_YOU_1_BASE64_AUDIO_HERE",
-            "he_you_are_welcome_1": "data:audio/mpeg;base64,TBD_HE_YOU_ARE_WELCOME_1_BASE64_AUDIO_HERE",
-            "th_you_are_welcome_1": "data:audio/mpeg;base64,TBD_TH_YOU_ARE_WELCOME_1_BASE64_AUDIO_HERE",
-            "he_please_1": "data:audio/mpeg;base64,TBD_HE_PLEASE_1_BASE64_AUDIO_HERE",
-            "th_please_1": "data:audio/mpeg;base64,TBD_TH_PLEASE_1_BASE64_AUDIO_HERE",
-            "he_yes_1": "data:audio/mpeg;base64,TBD_HE_YES_1_BASE64_AUDIO_HERE",
-            "th_yes_1": "data:audio/mpeg;base64,TBD_TH_YES_1_BASE64_AUDIO_HERE",
-            "he_no_1": "data:audio/mpeg;base64,TBD_HE_NO_1_BASE64_AUDIO_HERE",
-            "th_no_1": "data:audio/mpeg;base64,TBD_TH_NO_1_BASE64_AUDIO_HERE",
-            "he_come_back_tomorrow_1": "data:audio/mpeg;base64,TBD_HE_COME_BACK_TOMORROW_1_BASE64_AUDIO_HERE",
-            "th_come_back_tomorrow_1": "data:audio/mpeg;base64,TBD_TH_COME_BACK_TOMORROW_1_BASE64_AUDIO_HERE",
-            "he_work_harder_1": "data:audio/mpeg;base64,TBD_HE_WORK_HARDER_1_BASE64_AUDIO_HERE",
-            "th_work_harder_1": "data:audio/mpeg;base64,TBD_TH_WORK_HARDER_1_BASE64_AUDIO_HERE",
-            "he_take_a_break_1": "data:audio/mpeg;base64,TBD_HE_TAKE_A_BREAK_1_BASE64_AUDIO_HERE",
-            "th_take_a_break_1": "data:audio/mpeg;base64,TBD_TH_TAKE_A_BREAK_1_BASE64_AUDIO_HERE",
-            "he_good_job_1": "data:audio/mpeg;base64,TBD_HE_GOOD_JOB_1_BASE64_AUDIO_HERE",
-            "th_good_job_1": "data:audio/mpeg;base64,TBD_TH_GOOD_JOB_1_BASE64_AUDIO_HERE",
-            "he_clean_this_1": "data:audio/mpeg;base64,TBD_HE_CLEAN_THIS_1_BASE64_AUDIO_HERE",
-            "th_clean_this_1": "data:audio/mpeg;base64,TBD_TH_CLEAN_THIS_1_BASE64_AUDIO_HERE",
-            "he_move_it_there_1": "data:audio/mpeg;base64,TBD_HE_MOVE_IT_THERE_1_BASE64_AUDIO_HERE",
-            "th_move_it_there_1": "data:audio/mpeg;base64,TBD_TH_MOVE_IT_THERE_1_BASE64_AUDIO_HERE",
-            "he_finish_loading_1": "data:audio/mpeg;base64,TBD_HE_FINISH_LOADING_1_BASE64_AUDIO_HERE",
-            "th_finish_loading_1": "data:audio/mpeg;base64,TBD_TH_FINISH_LOADING_1_BASE64_AUDIO_HERE",
-            "he_go_to_lunch_1": "data:audio/mpeg;base64,TBD_HE_GO_TO_LUNCH_1_BASE64_AUDIO_HERE",
-            "th_go_to_lunch_1": "data:audio/mpeg;base64,TBD_TH_GO_TO_LUNCH_1_BASE64_AUDIO_HERE",
-            "he_number_1": "data:audio/mpeg;base64,TBD_HE_NUMBER_1_BASE64_AUDIO_HERE",
-            "th_number_1": "data:audio/mpeg;base64,TBD_TH_NUMBER_1_BASE64_AUDIO_HERE",
-            "he_number_2": "data:audio/mpeg;base64,TBD_HE_NUMBER_2_BASE64_AUDIO_HERE",
-            "th_number_2": "data:audio/mpeg;base664,TBD_TH_NUMBER_2_BASE64_AUDIO_HERE",
-            "he_number_3": "data:audio/mpeg;base64,TBD_HE_NUMBER_3_BASE64_AUDIO_HERE",
-            "th_number_3": "data:audio/mpeg;base64,TBD_TH_NUMBER_3_BASE64_AUDIO_HERE",
-            "he_number_4": "data:audio/mpeg;base64,TBD_HE_NUMBER_4_BASE64_AUDIO_HERE",
-            "th_number_4": "data:audio/mpeg;base64,TBD_TH_NUMBER_4_BASE64_AUDIO_HERE",
-            "he_number_5": "data:audio/mpeg;base64,TBD_HE_NUMBER_5_BASE64_AUDIO_HERE",
-            "th_number_5": "data:audio/mpeg;base64,TBD_TH_NUMBER_5_BASE64_AUDIO_HERE",
-            "he_number_6": "data:audio/mpeg;base64,TBD_HE_NUMBER_6_BASE64_AUDIO_HERE",
-            "th_number_6": "data:audio/mpeg;base64,TBD_TH_NUMBER_6_BASE64_AUDIO_HERE",
-            "he_number_7": "data:audio/mpeg;base64,TBD_HE_NUMBER_7_BASE64_AUDIO_HERE",
-            "th_number_7": "data:audio/mpeg;base64,TBD_TH_NUMBER_7_BASE64_AUDIO_HERE",
-            "he_number_8": "data:audio/mpeg;base64,TBD_HE_NUMBER_8_BASE64_AUDIO_HERE",
-            "th_number_8": "data:audio/mpeg;base64,TBD_TH_NUMBER_8_BASE64_AUDIO_HERE",
-            "he_number_9": "data:audio/mpeg;base64,TBD_HE_NUMBER_9_BASE64_AUDIO_HERE",
-            "th_number_9": "data:audio/mpeg;base64,TBD_TH_NUMBER_9_BASE64_AUDIO_HERE",
-            "he_number_10": "data:audio/mpeg;base64,TBD_HE_NUMBER_10_BASE64_AUDIO_HERE",
-            "th_number_10": "data:audio/mpeg;base64,TBD_TH_NUMBER_10_BASE64_AUDIO_HERE",
-            "he_wait_a_minute": "data:audio/mpeg;base64,TBD_HE_WAIT_A_MINUTE_BASE64_AUDIO_HERE",
-            "th_wait_a_minute": "data:audio/mpeg;base64,TBD_TH_WAIT_A_MINUTE_BASE64_AUDIO_HERE",
-            "he_clean_floor": "data:audio/mpeg;base64,TBD_HE_CLEAN_FLOOR_BASE64_AUDIO_HERE",
-            "th_clean_floor": "data:audio/mpeg;base64,TBD_TH_CLEAN_FLOOR_BASE64_AUDIO_HERE",
-            "he_come_here_now": "data:audio/mpeg;base64,TBD_HE_COME_HERE_NOW_BASE64_AUDIO_HERE",
-            "th_come_here_now": "data:audio/mpeg;base64,TBD_TH_COME_HERE_NOW_BASE64_AUDIO_HERE",
-            "he_start_working": "data:audio/mpeg;base64,TBD_HE_START_WORKING_BASE64_AUDIO_HERE",
-            "th_start_working": "data:audio/mpeg;base64,TBD_TH_START_WORKING_BASE64_AUDIO_HERE",
-            "he_customer_is_waiting": "data:audio/mpeg;base64,TBD_HE_CUSTOMER_IS_WAITING_BASE64_AUDIO_HERE",
-            "th_customer_is_waiting": "data:audio/mpeg;base64,TBD_TH_CUSTOMER_IS_WAITING_BASE64_AUDIO_HERE"
+            "bell_sound": "data:audio/mpeg;base64,", // Changed from TBD_BELL_SOUND_BASE64_AUDIO_HERE
+            "he_break_1": "data:audio/mpeg;base64,",
+            "th_break_1": "data:audio/mpeg;base64,",
+            "he_toilet_1": "data:audio/mpeg;base64,",
+            "th_toilet_1": "data:audio/mpeg;base64,",
+            "he_help_1": "data:audio/mpeg;base64,",
+            "th_help_1": "data:audio/mpeg;base64,",
+            "he_sick_1": "data:audio/mpeg;base64,",
+            "th_sick_1": "data:audio/mpeg;base64,",
+            "he_load_cement_1": "data:audio/mpeg;base64,",
+            "th_load_cement_1": "data:audio/mpeg;base64,",
+            "he_load_bags_1": "data:audio/mpeg;base64,",
+            "th_load_bags_1": "data:audio/mpeg;base64,",
+            "he_help_alaa_1": "data:audio/mpeg;base64,",
+            "th_help_alaa_1": "data:audio/mpeg;base64,",
+            "he_help_adham_1": "data:audio/mpeg;base64,",
+            "th_help_adham_1": "data:audio/mpeg;base64,",
+            "he_help_store_1": "data:audio/mpeg;base64,",
+            "th_help_store_1": "data:audio/mpeg;base64,",
+            "he_next_product_1": "data:audio/mpeg;base64,",
+            "th_next_product_1": "data:audio/mpeg;base64,",
+            "he_good_morning_1": "data:audio/mpeg;base64,",
+            "th_good_morning_1": "data:audio/mpeg;base64,",
+            "he_good_evening_1": "data:audio/mpeg;base64,",
+            "th_good_evening_1": "data:audio/mpeg;base64,",
+            "he_how_are_you_1": "data:audio/mpeg;base64,",
+            "th_how_are_you_1": "data:audio/mpeg;base64,",
+            "he_how_do_you_feel_1": "data:audio/mpeg;base64,",
+            "th_how_do_you_feel_1": "data:audio/mpeg;base64,",
+            "he_come_help_loading_1": "data:audio/mpeg;base64,",
+            "th_come_help_loading_1": "data:audio/mpeg;base64,",
+            "he_need_forklift_1": "data:audio/mpeg;base64,",
+            "th_need_forklift_1": "data:audio/mpeg;base64,",
+            "he_where_is_it_1": "data:audio/mpeg;base64,",
+            "th_where_is_it_1": "data:audio/mpeg;base64,",
+            "he_finished_work_1": "data:audio/mpeg;base64,",
+            "th_finished_work_1": "data:audio/mpeg;base64,",
+            "he_need_water_1": "data:audio/mpeg;base64,",
+            "th_need_water_1": "data:audio/mpeg;base64,",
+            "he_hungry_1": "data:audio/mpeg;base64,",
+            "th_hungry_1": "data:audio/mpeg;base64,",
+            "he_thank_you_1": "data:audio/mpeg;base64,",
+            "th_thank_you_1": "data:audio/mpeg;base64,",
+            "he_you_are_welcome_1": "data:audio/mpeg;base64,",
+            "th_you_are_welcome_1": "data:audio/mpeg;base64,",
+            "he_please_1": "data:audio/mpeg;base64,",
+            "th_please_1": "data:audio/mpeg;base64,",
+            "he_yes_1": "data:audio/mpeg;base64,",
+            "th_yes_1": "data:audio/mpeg;base64,",
+            "he_no_1": "data:audio/mpeg;base64,",
+            "th_no_1": "data:audio/mpeg;base64,",
+            "he_come_back_tomorrow_1": "data:audio/mpeg;base64,",
+            "th_come_back_tomorrow_1": "data:audio/mpeg;base64,",
+            "he_work_harder_1": "data:audio/mpeg;base64,",
+            "th_work_harder_1": "data:audio/mpeg;base64,",
+            "he_take_a_break_1": "data:audio/mpeg;base64,",
+            "th_take_a_break_1": "data:audio/mpeg;base64,",
+            "he_good_job_1": "data:audio/mpeg;base64,",
+            "th_good_job_1": "data:audio/mpeg;base64,",
+            "he_clean_this_1": "data:audio/mpeg;base64,",
+            "th_clean_this_1": "data:audio/mpeg;base64,",
+            "he_move_it_there_1": "data:audio/mpeg;base64,",
+            "th_move_it_there_1": "data:audio/mpeg;base64,",
+            "he_finish_loading_1": "data:audio/mpeg;base64,",
+            "th_finish_loading_1": "data:audio/mpeg;base64,",
+            "he_go_to_lunch_1": "data:audio/mpeg;base64,",
+            "th_go_to_lunch_1": "data:audio/mpeg;base64,",
+            "he_number_1": "data:audio/mpeg;base64,",
+            "th_number_1": "data:audio/mpeg;base64,",
+            "he_number_2": "data:audio/mpeg;base64,",
+            "th_number_2": "data:audio/mpeg;base64,", /* FIXED: Changed base664 to base64 */
+            "he_number_3": "data:audio/mpeg;base64,",
+            "th_number_3": "data:audio/mpeg;base64,",
+            "he_number_4": "data:audio/mpeg;base64,",
+            "th_number_4": "data:audio/mpeg;base64,",
+            "he_number_5": "data:audio/mpeg;base64,",
+            "th_number_5": "data:audio/mpeg;base64,",
+            "he_number_6": "data:audio/mpeg;base64,",
+            "th_number_6": "data:audio/mpeg;base64,",
+            "he_number_7": "data:audio/mpeg;base64,",
+            "th_number_7": "data:audio/mpeg;base64,",
+            "he_number_8": "data:audio/mpeg;base64,",
+            "th_number_8": "data:audio/mpeg;base64,",
+            "he_number_9": "data:audio/mpeg;base64,",
+            "th_number_9": "data:audio/mpeg;base64,",
+            "he_number_10": "data:audio/mpeg;base64,",
+            "th_number_10": "data:audio/mpeg;base64,",
+            "he_wait_a_minute": "data:audio/mpeg;base64,",
+            "th_wait_a_minute": "data:audio/mpeg;base64,",
+            "he_clean_floor": "data:audio/mpeg;base64,",
+            "th_clean_floor": "data:audio/mpeg;base64,",
+            "he_come_here_now": "data:audio/mpeg;base64,",
+            "th_come_here_now": "data:audio/mpeg;base64,",
+            "he_start_working": "data:audio/mpeg;base64,",
+            "th_start_working": "data:audio/mpeg;base64,",
+            "he_customer_is_waiting": "data:audio/mpeg;base64,",
+            "th_customer_is_waiting": "data:audio/mpeg;base64,",
+            "he_where_is_cement_1": "data:audio/mpeg;base64,",
+            "th_where_is_cement_1": "data:audio/mpeg;base64,",
+            "he_finished_loading_1": "data:audio/mpeg;base64,",
+            "th_finished_loading_1": "data:audio/mpeg;base64,",
+            "he_need_more_bags_1": "data:audio/mpeg;base64,",
+            "th_need_more_bags_1": "data:audio/mpeg;base64,",
+            "he_customer_waiting_1": "data:audio/mpeg;base64,",
+            "th_customer_waiting_1": "data:audio/mpeg;base64,",
+            "he_arrange_shelves": "data:audio/mpeg;base64,",
+            "th_arrange_shelves": "data:audio/mpeg;base64,",
+            "he_unload_truck": "data:audio/mpeg;base64,",
+            "th_unload_truck": "data:audio/mpeg;base64,",
+            "he_wear_safety_gear": "data:audio/mpeg;base64,",
+            "th_wear_safety_gear": "data:audio/mpeg;base64,",
+            "he_organize_area_1": "data:audio/mpeg;base64,",
+            "th_organize_area_1": "data:audio/mpeg;base64,",
+            "he_clean_table_1": "data:audio/mpeg;base64,", /* Added missing audio IDs */
+            "th_clean_table_1": "data:audio/mpeg;base64,", /* Added missing audio IDs */
+            "he_finish_now_1": "data:audio/mpeg;base64,", /* Added missing audio IDs */
+            "th_finish_now_1": "data:audio/mpeg;base64,", /* Added missing audio IDs */
+            "he_come_here_1": "data:audio/mpeg;base64,", /* Added missing audio IDs */
+            "th_come_here_1": "data:audio/mpeg;base64,", /* Added missing audio IDs */
         };
 
 
@@ -474,8 +592,8 @@
             { "id": "thai_good_morning_1", "display_text": "בוקר טוב", "icon": "☀️", "he_text": "בוקר טוב.", "th_text": "สวัสดีตอนเช้า", "he_audio_id": "he_good_morning_1", "th_audio_id": "th_good_morning_1", "panel": "thai_worker", "is_urgent": false },
             { "id": "thai_good_evening_1", "display_text": "ערב טוב", "icon": "🌙", "he_text": "ערב טוב.", "th_text": "สวัสดีตอนเย็น", "he_audio_id": "he_good_evening_1", "th_audio_id": "th_good_evening_1", "panel": "thai_worker", "is_urgent": false },
             { "id": "thai_how_are_you_1", "display_text": "מה שלומך?", "icon": "😊", "he_text": "מה שלומך?", "th_text": "สบายดีไหม?", "he_audio_id": "he_how_are_you_1", "th_audio_id": "th_how_are_you_1", "panel": "thai_worker", "is_urgent": false },
-            { "id": "thai_how_do_you_feel_1", "display_text": "איך מרגיש?", "icon": "�", "he_text": "איך אתה מרגיש?", "th_text": "คุณรู้สึกอย่างไร?", "he_audio_id": "he_how_do_you_feel_1", "th_audio_id": "th_how_do_you_feel_1", "panel": "thai_worker", "is_urgent": false },
-            { "id": "thai_need_forklift_1", "display_text": "צריך מלגזה", "icon": " forklift", "he_text": "אני צריך מלגזה.", "th_text": "ผม/ฉัน ต้องการรถยก", "he_audio_id": "he_need_forklift_1", "th_audio_id": "th_need_forklift_1", "panel": "thai_worker", "is_urgent": false },
+            { "id": "thai_how_do_you_feel_1", "display_text": "איך מרגיש?", "icon": "🤒", "he_text": "איך אתה מרגיש?", "th_text": "คุณรู้สึกอย่างไร?", "he_audio_id": "he_how_do_you_feel_1", "th_audio_id": "th_how_do_you_feel_1", "panel": "thai_worker", "is_urgent": false },
+            { "id": "thai_need_forklift_1", "display_text": "צריך מלגזה", "icon": "🚚", "he_text": "אני צריך מלגזה.", "th_text": "ผม/ฉัน ต้องการรถยก", "he_audio_id": "he_need_forklift_1", "th_audio_id": "th_need_forklift_1", "panel": "thai_worker", "is_urgent": false },
             { "id": "thai_where_is_it_1", "display_text": "איפה זה?", "icon": "❓", "he_text": "איפה זה?", "th_text": "มันอยู่ที่ไหน?", "he_audio_id": "he_where_is_it_1", "th_audio_id": "th_where_is_it_1", "panel": "thai_worker", "is_urgent": false },
             { "id": "thai_finished_work_1", "display_text": "סיימתי עבודה", "icon": "✅", "he_text": "סיימתי את העבודה.", "th_text": "ผม/ฉัน ทำงานเสร็จแล้ว", "he_audio_id": "he_finished_work_1", "th_audio_id": "th_finished_work_1", "panel": "thai_worker", "is_urgent": false },
             { "id": "thai_need_water_1", "display_text": "צריך מים", "icon": "💧", "he_text": "אני צריך מים.", "th_text": "ผม/ฉัน ต้องการน้ำ", "he_audio_id": "he_need_water_1", "th_audio_id": "th_need_water_1", "panel": "thai_worker", "is_urgent": false },
@@ -484,9 +602,13 @@
             { "id": "thai_you_are_welcome_1", "display_text": "בבקשה", "icon": "😊", "he_text": "בבקשה.", "th_text": "ยินดี", "he_audio_id": "he_you_are_welcome_1", "th_audio_id": "th_you_are_welcome_1", "panel": "thai_worker", "is_urgent": false },
             { "id": "thai_yes_1", "display_text": "כן", "icon": "👍", "he_text": "כן.", "th_text": "ใช่", "he_audio_id": "he_yes_1", "th_audio_id": "th_yes_1", "panel": "thai_worker", "is_urgent": false },
             { "id": "thai_no_1", "display_text": "לא", "icon": "👎", "he_text": "לא.", "th_text": "ไม่", "he_audio_id": "he_no_1", "th_audio_id": "th_no_1", "panel": "thai_worker", "is_urgent": false },
+            { "id": "thai_where_is_cement_1", "display_text": "איפה המלט?", "icon": "🧱", "he_text": "איפה המלט?", "th_text": "ปูนอยู่ที่ไหน?", "he_audio_id": "he_where_is_cement_1", "th_audio_id": "th_where_is_cement_1", "panel": "thai_worker", "is_urgent": false },
+            { "id": "thai_finished_loading_1", "display_text": "סיימתי העמסה", "icon": "📦", "he_text": "סיימתי להעמיס.", "th_text": "ขนของเสร็จแล้ว", "he_audio_id": "he_finished_loading_1", "th_audio_id": "th_finished_loading_1", "panel": "thai_worker", "is_urgent": false },
+            { "id": "thai_need_more_bags_1", "display_text": "צריך עוד שקים", "icon": "🛍️", "he_text": "אני צריך עוד שקים.", "th_text": "ผม/ฉัน ต้องการถุงเพิ่ม", "he_audio_id": "he_need_more_bags_1", "th_audio_id": "th_need_more_bags_1", "panel": "thai_worker", "is_urgent": false },
+            { "id": "thai_customer_waiting_1", "display_text": "לקוח מחכה", "icon": "🚶", "he_text": "לקוח מחכה.", "th_text": "ลูกค้ากำลังรอ", "he_audio_id": "he_customer_waiting_1", "th_audio_id": "th_customer_waiting_1", "panel": "thai_worker", "is_urgent": true },
 
             // הוראות מנהל (הוראות לעובד)
-            { "id": "manager_load_cement_1", "display_text": "העמס מלט", "icon": "📦", "he_text": "תעמיס מלט.", "th_text": "ขนปูน", "he_audio_id": "he_load_cement_1", "th_audio_id": "th_load_cement_1", "panel": "manager", "is_urgent": false },
+            { "id": "manager_load_cement_1", "display_text": "העמס מלט", "icon": "🏗️", "he_text": "תעמיס מלט.", "th_text": "ขนปูน", "he_audio_id": "he_load_cement_1", "th_audio_id": "th_load_cement_1", "panel": "manager", "is_urgent": false },
             { "id": "manager_organize_area_1", "display_text": "סדר אזור", "icon": "🧹", "he_text": "תבוא תסדר את האזור הזה.", "th_text": "มาจัดระเบียบพื้นที่นี้หน่อย", "he_audio_id": "he_organize_area_1", "th_audio_id": "th_organize_area_1", "panel": "manager", "is_urgent": false },
             { "id": "manager_clean_table_1", "display_text": "נקה שולחן", "icon": "🧼", "he_text": "תנקה את השולחן.", "th_text": "ทำความสะอาดโต๊ะ", "he_audio_id": "he_clean_table_1", "th_audio_id": "th_clean_table_1", "panel": "manager", "is_urgent": false },
             { "id": "manager_finish_now_1", "display_text": "סיים עכשיו", "icon": "⏱️", "he_text": "תסיים את העבודה עכשיו.", "th_text": "ทำงานให้เสร็จเดี๋ยวนี้", "he_audio_id": "he_finish_now_1", "th_audio_id": "th_finish_now_1", "panel": "manager", "is_urgent": true },
@@ -556,44 +678,89 @@
 
         /**
          * מציג פופאפ עם טקסט ואודיו.
-         * @param {string} text - הטקסט להצגה בפופאפ.
+         * @param {string} heText - הטקסט בעברית להצגה בפופאפ.
+         * @param {string} thText - הטקסט בתאית להצגה בפופאפ.
          * @param {string} audioUrl - ה-URL של קובץ האודיו לניגון.
+         * @param {string} emoji - האימוג'י להצגה בפופאפ.
          * @param {boolean} isUrgent - האם ההודעה דחופה (תפעיל אנימציה ואייקון).
          */
-        function showPopup(text, audioUrl, isUrgent = false) {
+        function showPopup(heText, thText, audioUrl, emoji, isUrgent = false) {
             clearTimeout(popupCloseTimeout); // נקה כל טיימר קודם של סגירה אוטומטית
 
-            popupText.textContent = text;
-            popupAudioUrl = audioUrl;
+            popupText.innerHTML = ''; // Clear previous content
+            // Create spans for typing effect for both languages
+            const hebrewSpan = document.createElement('span');
+            hebrewSpan.classList.add('hebrew-text');
+            hebrewSpan.dir = 'rtl';
+            popupText.appendChild(hebrewSpan);
 
-            // עדכן אנימציה וסגנון
+            const thaiSpan = document.createElement('span');
+            thaiSpan.classList.add('thai-text-popup'); // Use specific class for popup Thai text
+            thaiSpan.dir = 'ltr';
+            popupText.appendChild(thaiSpan);
+
+            // Display emoji in popup
+            popupEmoji.textContent = emoji || '';
+            popupEmoji.classList.toggle('hidden', !emoji);
+
+            // Add/remove urgency animations
             popupContent.classList.remove('urgent-popup-animate', 'popup-animate');
-            urgentIcon.classList.add('hidden'); // הסתר אייקון כברירת מחדל
+            popupEmoji.classList.remove('emoji-sparkle-animate');
 
             if (isUrgent) {
                 popupContent.classList.add('urgent-popup-animate');
-                urgentIcon.classList.remove('hidden');
-                playBellSound(); // נגן צלצול פעמון להודעות דחופות
+                popupEmoji.classList.add('emoji-sparkle-animate');
+                playBellSound(); // Play bell sound for urgent messages
             } else {
                 popupContent.classList.add('popup-animate');
             }
 
             popupOverlay.classList.remove('hidden');
-            // הפעל אנימציית כניסה
+            // Trigger entry animation
             setTimeout(() => {
                 popupContent.classList.remove('scale-0', 'opacity-0');
                 popupContent.classList.add('scale-100', 'opacity-100');
-            }, 10); // השהיה קצרה להפעלת אנימציה
+            }, 10); // Short delay to ensure animation plays
 
-            playAudio(audioUrl);
+            // Typing effect for Hebrew text first
+            typingEffectForPopup(hebrewSpan, heText, 30, () => {
+                // Then typing effect for Thai text
+                typingEffectForPopup(thaiSpan, thText, 30);
+            });
 
-            // סגור פופאפ אוטומטית לאחר 5 שניות אם זו לא הודעה דחופה
-            if (!isUrgent) {
-                popupCloseTimeout = setTimeout(() => {
-                    hidePopup();
-                }, 5000);
+            // Play audio
+            if (audioUrl) {
+                playAudio(audioUrl);
             }
+
+            // Close popup automatically after 2.5 seconds
+            popupCloseTimeout = setTimeout(() => {
+                hidePopup();
+            }, 2500); // 2.5 seconds
         }
+
+        /**
+         * Helper for typing effect specifically for popup to avoid global typing effect class
+         * @param {HTMLElement} element - The HTML element to apply typing effect to.
+         * @param {string} text - The text to type.
+         * @param {number} speed - Typing speed in milliseconds per character.
+         * @param {function} callback - Callback function to execute after typing is complete.
+         */
+        function typingEffectForPopup(element, text, speed = 50, callback = () => {}) {
+            let i = 0;
+            element.textContent = ''; // Clear existing text
+            // No blinking caret for popup spans, only for main display
+            const interval = setInterval(() => {
+                if (i < text.length) {
+                    element.textContent += text.charAt(i);
+                    i++;
+                } else {
+                    clearInterval(interval);
+                    if (callback) callback();
+                }
+            }, speed);
+        }
+
 
         /**
          * מסתיר את הפופאפ.
@@ -602,11 +769,11 @@
             clearTimeout(popupCloseTimeout); // נקה את הטיימר
             popupContent.classList.remove('scale-100', 'opacity-100');
             popupContent.classList.add('scale-0', 'opacity-0');
-            // הסתר את האוברליי לאחר שהאנימציה הסתיימה
+            // Remove animation classes after transition ends to allow re-triggering
             popupContent.addEventListener('transitionend', () => {
                 popupOverlay.classList.add('hidden');
-                // הסר את מאזין האירועים כדי למנוע הדלפות זיכרון
-                popupContent.removeEventListener('transitionend', arguments.callee);
+                popupEmoji.classList.remove('emoji-sparkle-animate');
+                popupContent.classList.remove('urgent-popup-animate', 'popup-animate');
             }, { once: true });
         }
 
@@ -617,8 +784,7 @@
         function playAudio(audioUrl) {
             if (currentAudio) {
                 currentAudio.pause();
-                currentAudio.removeAttribute('src'); // הסר את ה-src כדי לטעון מחדש
-                currentAudio.load();
+                currentAudio.currentTime = 0; // Reset to start
             } else {
                 currentAudio = new Audio();
             }
@@ -639,6 +805,9 @@
 
             if (lang === 'th') {
                 mainDisplayText.classList.add('thai-text');
+                mainDisplayText.style.direction = 'ltr'; // For Thai text, set direction to LTR
+            } else {
+                mainDisplayText.style.direction = 'rtl'; // For Hebrew text, set direction to RTL
             }
 
             let i = 0;
@@ -664,9 +833,9 @@
          * פונקציה ליצירת כפתור והוספתו לפאנל.
          * @param {object} phrase - אובייקט המכיל את פרטי המשפט (display_text, he_text, th_text, icon, he_audio_id, th_audio_id, is_urgent).
          * @param {HTMLElement} panelElement - אלמנט ה-HTML (div) שאליו יש להוסיף את הכפתור.
-         * @param {string} type - 'thai_to_he' או 'he_to_thai'.
+         * @param {string} targetLangForMainDisplay - השפה שתוצג במסך הראשי (he/th).
          */
-        function createButton(phrase, panelElement, type) {
+        function createButton(phrase, panelElement, targetLangForMainDisplay) {
             const button = document.createElement('button');
             button.className = `p-4 flex flex-col items-center justify-center bg-white rounded-xl shadow-md hover:shadow-lg transition-all transform hover:scale-105
                                  text-xl font-semibold text-gray-800 border-2 border-transparent relative overflow-hidden h-32 text-center`; // הגדל גובה הכפתורים
@@ -681,59 +850,64 @@
                 button.classList.add('bg-blue-200', 'hover:bg-blue-300');
             }
 
-            // הוסף אייקון
+            // הוסף אימוג'י כרקע עדין
             if (phrase.icon) {
-                const iconSpan = document.createElement('span');
-                iconSpan.className = 'text-4xl mb-1'; // גודל אייקון גדול יותר
-                iconSpan.textContent = phrase.icon;
-                button.appendChild(iconSpan);
+                const emojiBgSpan = document.createElement('span');
+                emojiBgSpan.classList.add('emoji-background');
+                emojiBgSpan.textContent = phrase.icon;
+                button.appendChild(emojiBgSpan);
             }
 
-            const textSpan = document.createElement('span');
-            textSpan.textContent = phrase.display_text;
-            button.appendChild(textSpan);
+            const textContent = document.createElement('span');
+            textContent.classList.add('text-content');
+            textContent.textContent = phrase.display_text;
+            button.appendChild(textContent);
 
             // הוסף אירוע לחיצה לכפתור
             button.addEventListener('click', () => {
-                let textToDisplay = '';
-                let audioToPlayId = '';
-                let spokenLanguage = '';
-                let translatedText = '';
+                // Clear any previous main display content and its typing effect
+                mainDisplayText.textContent = '';
+                mainDisplayText.classList.remove('thai-text', 'typing-effect');
+                mainTranslationDisplay.classList.remove('rainbow-border'); // Remove rainbow border on new click
 
-                if (panelElement.id === 'thaiWorkerPanel') { // עובד תאילנדי (מדבר תאית)
-                    textToDisplay = phrase.th_text;
-                    audioToPlayId = phrase.th_audio_id;
-                    spokenLanguage = 'th';
-                    translatedText = phrase.he_text; // התרגום לעברית יוצג בפופאפ
-                } else if (panelElement.id === 'managerPanel') { // מנהל (מדבר עברית)
-                    textToDisplay = phrase.he_text;
-                    audioToPlayId = phrase.he_audio_id;
-                    spokenLanguage = 'he';
-                    translatedText = phrase.th_text; // התרגום לתאית יוצג בפופאפ
-                } else if (panelElement.id === 'instantPhrasesHe' || panelElement.id === 'numberPhrasesHe') {
-                    textToDisplay = phrase.text; // עברית
-                    audioToPlayId = phrase.he_audio_id;
-                    spokenLanguage = 'he';
-                    translatedText = phrase.thai; // תרגום לתאית
-                } else if (panelElement.id === 'instantPhrasesTh' || panelElement.id === 'numberPhrasesTh') {
-                    textToDisplay = phrase.text; // תאית
-                    audioToPlayId = phrase.th_audio_id;
-                    spokenLanguage = 'th';
-                    translatedText = phrase.he_text; // תרגום לעברית
+                let textToSpeak = '';
+                let audioIdToPlay = '';
+                let popupHebrewText = '';
+                let popupThaiText = '';
+
+                // Determine what to display/speak based on the button's panel
+                if (panelElement.id === 'thaiWorkerPanel') { // Thai worker's request (speaks Thai, translates to Hebrew)
+                    textToSpeak = phrase.th_text;
+                    audioIdToPlay = phrase.th_audio_id;
+                    popupHebrewText = phrase.he_text;
+                    popupThaiText = phrase.th_text;
+                    typeWriterEffect(phrase.th_text, 'th', base64AudioData[phrase.th_audio_id]); // Display Thai in main display
+                } else if (panelElement.id === 'managerPanel') { // Manager's instruction (speaks Hebrew, translates to Thai)
+                    textToSpeak = phrase.he_text;
+                    audioIdToPlay = phrase.he_audio_id;
+                    popupHebrewText = phrase.he_text;
+                    popupThaiText = phrase.th_text;
+                    typeWriterEffect(phrase.he_text, 'he', base64AudioData[phrase.he_audio_id]); // Display Hebrew in main display
+                } else if (panelElement.id === 'instantPhrasesHe' || panelElement.id === 'numberPhrasesHe') { // Hebrew instant phrases/numbers (speaks Hebrew, translates to Thai)
+                    textToSpeak = phrase.he_text;
+                    audioIdToPlay = phrase.he_audio_id;
+                    popupHebrewText = phrase.he_text;
+                    popupThaiText = phrase.th_text;
+                    typeWriterEffect(phrase.he_text, 'he', base64AudioData[phrase.he_audio_id]); // Display Hebrew in main display
+                } else if (panelElement.id === 'instantPhrasesTh' || panelElement.id === 'numberPhrasesTh') { // Thai instant phrases/numbers (speaks Thai, translates to Hebrew)
+                    textToSpeak = phrase.th_text;
+                    audioIdToPlay = phrase.th_audio_id;
+                    popupHebrewText = phrase.he_text;
+                    popupThaiText = phrase.th_text;
+                    typeWriterEffect(phrase.th_text, 'th', base64AudioData[phrase.th_audio_id]); // Display Thai in main display
                 }
 
-                // הפעל אפקט הקלדה על המסך הראשי
-                typeWriterEffect(textToDisplay, spokenLanguage, base64AudioData[audioToPlayId]);
+                // Show the popup with both translated texts (Hebrew and Thai)
+                showPopup(popupHebrewText, popupThaiText, base64AudioData[audioIdToPlay], phrase.icon, phrase.is_urgent);
 
-                // הצג את הפופאפ עם הטקסט המתורגם
-                // קבע את שפת הטקסט המתורגם בפופאפ
-                const popupTranslatedLang = (spokenLanguage === 'he' || panelElement.id === 'instantPhrasesHe' || panelElement.id === 'numberPhrasesHe') ? 'th' : 'he';
-                showPopup(translatedText, (popupTranslatedLang === 'th' ? base64AudioData[phrase.th_audio_id] : base64AudioData[phrase.he_audio_id]), phrase.is_urgent);
-
-                // נגן צלצול פעמון על כל לחיצת כפתור (אם לא דחוף, זה יהיה בנוסף לצלצול הדחוף)
-                if (!phrase.is_urgent) { // נגן רק אם לא נגן כבר ב-showPopup
-                    playBellSound();
-                }
+                // Add rainbow border to main display while "translating" (typing effect is running)
+                mainTranslationDisplay.classList.add('rainbow-border');
+                // The rainbow border will be removed by typeWriterEffect callback.
             });
 
             panelElement.appendChild(button);
@@ -751,54 +925,58 @@
 
             phrasesData.forEach(phrase => {
                 if (phrase.panel === 'thai_worker') {
-                    createButton(phrase, thaiWorkerPanel, 'thai_to_he');
+                    createButton(phrase, thaiWorkerPanel, 'th'); // Thai worker speaks Thai, main display shows Thai
                 } else if (phrase.panel === 'manager') {
-                    createButton(phrase, managerPanel, 'he_to_thai');
+                    createButton(phrase, managerPanel, 'he'); // Manager speaks Hebrew, main display shows Hebrew
                 }
+            });
+
+            instantPhrrases.forEach(phrase => {
+                createButton({
+                    display_text: phrase.text,
+                    icon: '💬',
+                    he_text: phrase.text,
+                    th_text: phrase.thai,
+                    he_audio_id: phrase.he_audio_id,
+                    th_audio_id: phrase.th_audio_id,
+                    is_urgent: false
+                }, instantPhrasesHe, 'he'); // Instant Hebrew phrases, main display shows Hebrew
             });
 
             instantPhrases.forEach(phrase => {
                 createButton({
-                    display_text: phrase.text,
+                    display_text: phrase.thai, // Show Thai on button for Thai panel
                     icon: '💬',
-                    he_text: phrase.text,
-                    th_text: phrase.thai,
-                    he_audio_id: phrase.he_audio_id,
-                    th_audio_id: phrase.th_audio_id,
-                    is_urgent: false // משפטים מיידיים בדרך כלל אינם דחופים
-                }, instantPhrasesHe, 'he_to_thai');
-
-                createButton({
-                    display_text: phrase.thai,
-                    icon: '💬',
-                    he_text: phrase.he_text, // עבור הצגה בפופאפ
+                    he_text: phrase.he_text,
                     th_text: phrase.thai,
                     he_audio_id: phrase.he_audio_id,
                     th_audio_id: phrase.th_audio_id,
                     is_urgent: false
-                }, instantPhrasesTh, 'thai_to_he');
+                }, instantPhrasesTh, 'th'); // Instant Thai phrases, main display shows Thai
             });
 
             numberPhrases.forEach(phrase => {
                 createButton({
-                    display_text: phrase.text,
+                    display_text: phrase.text, // Show Arabic numeral on button
                     icon: '#️⃣',
                     he_text: phrase.text,
                     th_text: phrase.thai,
                     he_audio_id: phrase.he_audio_id,
                     th_audio_id: phrase.th_audio_id,
                     is_urgent: false
-                }, numberPhrasesHe, 'he_to_thai');
+                }, numberPhrasesHe, 'he'); // Numbers Hebrew, main display shows Hebrew
+            });
 
+            numberPhrases.forEach(phrase => {
                 createButton({
-                    display_text: phrase.thai,
+                    display_text: phrase.thai, // Show Thai numeral on button
                     icon: '#️⃣',
-                    he_text: phrase.he_text, // עבור הצגה בפופאפ
+                    he_text: phrase.he_text,
                     th_text: phrase.thai,
                     he_audio_id: phrase.he_audio_id,
                     th_audio_id: phrase.th_audio_id,
                     is_urgent: false
-                }, numberPhrasesTh, 'thai_to_he');
+                }, numberPhrasesTh, 'th'); // Numbers Thai, main display shows Thai
             });
         }
 
@@ -808,6 +986,11 @@
         popupReplayButton.addEventListener('click', () => {
             if (popupAudioUrl) {
                 playAudio(popupAudioUrl);
+                // Reset popup close timeout after replaying audio
+                clearTimeout(popupCloseTimeout);
+                popupCloseTimeout = setTimeout(() => {
+                    hidePopup();
+                }, 2500);
             }
         });
 
@@ -816,9 +999,16 @@
             keyboard = new SimpleKeyboard.default({
                 onChange: input => {
                     document.getElementById('freeTextInput').value = input;
-                    // כאשר המשתמש מקליד, נקה את המסך הראשי של התרגום המיידי
-                    mainDisplayText.textContent = '';
+                    // When user types, clear main display and remove typing effect/rainbow border
+                    mainDisplayText.textContent = input; // Display current input immediately
                     mainDisplayText.classList.remove('thai-text', 'typing-effect');
+                    mainTranslationDisplay.classList.remove('rainbow-border');
+                    if (currentKeyboardLayout === 'hebrew') {
+                        mainDisplayText.style.direction = 'rtl';
+                    } else {
+                        mainDisplayText.style.direction = 'ltr';
+                        mainDisplayText.classList.add('thai-text');
+                    }
                 },
                 onKeyPress: button => {
                     if (button === "{shift}" || button === "{capslock}") {
@@ -826,7 +1016,7 @@
                     }
                 },
                 layout: layoutOptions[currentKeyboardLayout],
-                theme: "hg-theme-default hg-layout-numeric simple-keyboard", // הוסף קלאס להתאמה אישית
+                theme: "hg-theme-default hg-layout-numeric simple-keyboard", // Add class for custom styling
                 display: {
                     '{bksp}': 'מחק',
                     '{tab}': 'טאב',
@@ -835,6 +1025,8 @@
                     '{space}': 'רווח'
                 }
             });
+            // Initial focus on freeTextInput to show keyboard
+            freeTextInput.focus();
         }
 
         function handleShiftAndCaps() {
@@ -852,6 +1044,10 @@
             keyboard.setInput('');
             document.getElementById('freeTextInput').classList.remove('thai-text');
             document.getElementById('freeTextInput').style.direction = 'rtl';
+            mainDisplayText.textContent = 'הקלד משהו או בחר משפט...';
+            mainDisplayText.classList.remove('thai-text');
+            mainDisplayText.style.direction = 'rtl';
+            mainTranslationDisplay.classList.remove('rainbow-border');
         });
 
         document.getElementById('setLangTh').addEventListener('click', () => {
@@ -860,35 +1056,42 @@
             keyboard.setInput('');
             document.getElementById('freeTextInput').classList.add('thai-text');
             document.getElementById('freeTextInput').style.direction = 'ltr';
+            mainDisplayText.textContent = 'พิมพ์อะไรบางอย่างหรือเลือกวลี...'; // Placeholder in Thai
+            mainDisplayText.classList.add('thai-text');
+            mainDisplayText.style.direction = 'ltr';
+            mainTranslationDisplay.classList.remove('rainbow-border');
         });
 
         // תרגום טקסט חופשי (מודל ג'מיני)
         document.getElementById('speakTranslated').addEventListener('click', async () => {
-            const freeTextInput = document.getElementById('freeTextInput').value.trim();
-            if (!freeTextInput) {
-                showPopup("אנא הזן טקסט לתרגום.", "", false); // אין אודיו, לא דחוף
+            const freeTextInputValue = document.getElementById('freeTextInput').value.trim();
+            if (!freeTextInputValue) {
+                showPopup("אנא הזן טקסט לתרגום.", "data:audio/mpeg;base64,", "🚫", false); // Placeholder audio, no emoji for this popup
                 return;
             }
 
             // הוסף אנימציית 'קשת בענן' למסך התרגום בזמן הטעינה
             mainTranslationDisplay.classList.add('rainbow-border');
             mainDisplayText.textContent = 'מתרגם...';
-            mainDisplayText.classList.remove('thai-text'); // וודא שהפונט נורמלי בזמן טעינה
-            mainDisplayText.style.direction = 'rtl'; // כיוון טקסט ל-RTL בזמן טעינה
+            mainDisplayText.classList.remove('thai-text', 'typing-effect'); // Ensure clean state
+            mainDisplayText.style.direction = 'rtl'; // Direction for "מתרגם..."
 
             try {
                 // קביעת שפת המקור והיעד לתרגום
                 let sourceLang = '';
                 let targetLang = '';
+                let displayDirection = 'rtl'; // Default for Hebrew
                 if (currentKeyboardLayout === 'hebrew') {
                     sourceLang = 'he';
                     targetLang = 'th';
+                    displayDirection = 'ltr'; // For translated Thai text
                 } else {
                     sourceLang = 'th';
                     targetLang = 'he';
+                    displayDirection = 'rtl'; // For translated Hebrew text
                 }
 
-                const prompt = `Translate the following text from ${sourceLang} to ${targetLang}: "${freeTextInput}"`;
+                const prompt = `Translate the following text from ${sourceLang} to ${targetLang}: "${freeTextInputValue}"`;
 
                 let chatHistory = [];
                 chatHistory.push({ role: "user", parts: [{ text: prompt }] });
@@ -912,21 +1115,22 @@
                     translatedText = "שגיאה בתרגום. אנא נסה שוב.";
                 }
 
-                // עבור Gemini, יצירת TTS דורשת קריאה נוספת.
-                // מכיוון שאין TTS מובנה, נציג את הטקסט המתורגם.
-                // כאן היית משלב שירות TTS אם היה זמין, ומקבל Audio Base64.
-                // כרגע, פשוט נציג את הטקסט המתורגם.
+                // For Gemini, TTS generation requires an additional call.
+                // Since built-in TTS is not available, we will display the translated text.
+                // Here you would integrate a TTS service if available, and get Base64 audio.
+                // For now, we simply display the translated text.
 
-                mainDisplayText.classList.remove('rainbow-border'); // הסר את אנימציית הטעינה
-                typeWriterEffect(translatedText, targetLang); // הצג את התרגום באפקט הקלדה
+                mainTranslationDisplay.classList.remove('rainbow-border'); // Remove loading animation
+                typeWriterEffect(translatedText, targetLang); // Display translation with typing effect
 
-                // הדגמת ניגון אודיו אם היה זליל TTS
+                // Example of playing audio if TTS were available
                 // playAudio('data:audio/mpeg;base64,YOUR_GENERATED_TTS_AUDIO_BASE64_HERE');
 
             } catch (error) {
                 console.error("שגיאה בתרגום:", error);
                 mainDisplayText.textContent = "אירעה שגיאה בתרגום. אנא נסה שוב.";
-                mainDisplayText.classList.remove('rainbow-border', 'thai-text');
+                mainTranslationDisplay.classList.remove('rainbow-border'); // Ensure animation is off
+                mainDisplayText.classList.remove('thai-text'); // Ensure correct font/direction for error
                 mainDisplayText.style.direction = 'rtl';
             }
         });
@@ -936,14 +1140,12 @@
         window.onload = () => {
             populatePanels();
             initKeyboard();
-            document.getElementById('freeTextInput').style.direction = 'rtl'; // ברירת מחדל עברית
-
-            // הגדר את טקסט הפתיחה למסך הראשי
+            // Set initial direction and text for freeTextInput and mainDisplayText
+            freeTextInput.style.direction = 'rtl'; // Default to Hebrew input
             mainDisplayText.textContent = 'ברוך הבא! בחר משפט או הקלד לתרגום.';
-            // הסר את אנימציית הקלדה מטקסט הפתיחה
-            mainDisplayText.classList.remove('typing-effect');
+            mainDisplayText.classList.remove('typing-effect'); // Ensure typing effect is not active on initial text
+            mainDisplayText.style.direction = 'rtl';
         };
     </script>
 </body>
 </html>
-�
