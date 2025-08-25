@@ -803,7 +803,7 @@ async function api(action, payload){
 
   // ====== Settings Modal ======
   function openSettings(){
-    document.getElementById('appsScriptUrl').value = state.settings.appsScriptUrl || '';
+    document.getElementById('appsScriptUrl').value = state.settings.appsScriptUrl || 'https://script.google.com/macros/s/AKfycbzTYUPZP-wqCp2gZ6PGEJR18XGTpjbX3U8pfRrRjFHvDNx4m9vo1nCVYI92Ic0-dJgHOA/exec';
     document.getElementById('workStart').value = state.settings.workStart;
     document.getElementById('workEnd').value = state.settings.workEnd;
     document.getElementById('svcManual').value = state.settings.svcManual;
