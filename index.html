@@ -457,7 +457,18 @@
       localStorage.setItem(SETTINGS_KEY, JSON.stringify(state.settings));
     }
   }
-
+  settings() {
+        return {
+            appsScriptUrl: 'https://script.google.com/macros/s/AKfycbzTYUPZP-wqCp2gZ6PGEJR18XGTpjbX3U8pfRrRjFHvDNx4m9vo1nCVYI92Ic0-dJgHOA/exec', // YOUR APPS SCRIPT WEB APP URL
+            appsScriptToken: 's3cr3t_t0k3n_f0r_my_crm', // IMPORTANT: CHANGE THIS TO YOUR ACTUAL SECRET TOKEN!
+            workStart: '06:00',
+            workEnd: '16:00',
+            svcManual: 45,
+            svcCrane: 90,
+            speedAli: 55,
+            speedHikmat: 50,
+            // Add more settings as needed, e.g., googleDistanceMatrixApiKey
+        };
   // ====== Defaults (Cities) ======
   const Defaults = {
     cities(){
