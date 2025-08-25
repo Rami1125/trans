@@ -1,0 +1,2026 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>CRM נהגים – עלי & חכמת | לוח בקרה חכם</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ["Rubik", "Arial", "ui-sans-serif", "system-ui"] },
+          boxShadow: {
+            glow: "0 0 0 1px rgba(255,255,255,0.06) inset, 0 0 40px rgba(59,130,246,0.35)",
+            neon: "0 0 8px rgba(59,130,246,.6), 0 0 24px rgba(59,130,246,.35)",
+          },
+          colors: {
+            ali: "#16a34a", // Green for Ali
+            hikmat: "#0ea5e9", // Blue for Hikmat
+            crane: "#0ea5e9", // Blue for crane job type
+            manual: "#16a34a", // Green for manual job type
+            warning: "#f59e0b", // Amber for warning
+            danger: "#ef4444", // Red for danger
+            glass: "rgba(255,255,255,0.08)", // Light glass effect
+            glass2: "rgba(255,255,255,0.12)", // Stronger glass effect
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <!-- Day.js & Plugins -->
+  <script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dayjs@1/plugin/customParseFormat.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dayjs@1/plugin/isoWeek.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dayjs@1/plugin/relativeTime.js"></script>
+  <script>dayjs.extend(dayjs_plugin_customParseFormat); dayjs.extend(dayjs_plugin_isoWeek); dayjs.extend(dayjs_plugin_relativeTime);</script>
+  <!-- Chart.js for simple charts -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <style>
+    /* Base styles for a clean, glassmorphism-inspired light theme */
+    html, body { 
+      background: #f0f2f5; /* Light grey background */
+      color: #333; /* Darker text for contrast */
+      font-family: 'Rubik', sans-serif;
+    }
+    .glass { 
+      background: rgba(255, 255, 255, 0.7); /* Translucent white background */
+      backdrop-filter: blur(10px); /* Glassmorphism blur */
+      border: 1px solid rgba(255, 255, 255, 0.3); /* Light border */
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+    }
+    .text-ali { color: #16a34a; }
+    .text-hikmat { color: #0ea5e9; }
+    .bg-ali { background-color: #16a34a; }
+    .bg-hikmat { background-color: #0ea5e9; }
+
+    /* Custom button styles */
+    .btn { @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-gray-200 text-gray-800 hover:bg-gray-300 transition duration-200 shadow-sm; }
+    .btn-primary { @apply bg-blue-600 text-white hover:bg-blue-700 shadow-md; }
+    .btn-success { @apply bg-emerald-600 text-white hover:bg-emerald-700 shadow-md; }
+    .btn-danger { @apply bg-red-600 text-white hover:bg-red-700 shadow-md; }
+    .btn-warning { @apply bg-amber-600 text-white hover:bg-amber-700 shadow-md; }
+
+    /* Tags for info */
+    .tag { @apply text-xs px-2.5 py-1 rounded-full bg-gray-100 text-gray-700 border border-gray-200; }
+    .tag-status-PLANNED { @apply bg-blue-100 text-blue-800; }
+    .tag-status-EN_ROUTE { @apply bg-green-100 text-green-800; }
+    .tag-status-LOADING { @apply bg-yellow-100 text-yellow-800; }
+    .tag-status-DELAYED { @apply bg-red-100 text-red-800; }
+    .tag-status-DONE { @apply bg-purple-100 text-purple-800; }
+    .tag-status-PARTIAL { @apply bg-orange-100 text-orange-800; }
+
+    /* KPI Cards */
+    .kpi { @apply glass rounded-2xl p-4 shadow-md; }
+
+    /* Timeline specific styles */
+    .grid-cols-timeline { grid-template-columns: 60px repeat(20, minmax(0,1fr)); } /* 06:00–16:00 = 10h -> 20 slots of 30min */
+    .timeline-tick::after { content: ""; position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: rgba(0,0,0,.08); }
+    .order-block { 
+      position: absolute; top: 4px; height: calc(100% - 8px); border-radius: 12px; 
+      cursor: grab; user-select: none; transition: all 0.2s ease-in-out;
+      @apply shadow-md border border-white;
+    }
+    .order-block.dragging { 
+      opacity: .85; outline: 2px dashed rgba(0,0,0,.35); cursor: grabbing; 
+      transform: scale(1.02);
+    }
+    .lane-ali { background-color: rgba(22, 163, 74, 0.1); } /* Light green background for Ali's lane */
+    .lane-hikmat { background-color: rgba(14, 165, 233, 0.1); } /* Light blue background for Hikmat's lane */
+
+    /* Modal styles */
+    .modal-backdrop { 
+      position: fixed; inset: 0; background: rgba(0,0,0,.4); display: none; 
+      align-items: center; justify-content: center; z-index: 100;
+      opacity: 0; transition: opacity 0.3s ease-in-out;
+    }
+    .modal-backdrop.show { display: flex; opacity: 1; }
+    .modal-content { 
+      @apply glass rounded-3xl p-6 shadow-xl w-[min(900px,95vw)] max-h-[90vh] overflow-y-auto;
+      transform: translateY(-20px); opacity: 0; transition: all 0.3s ease-in-out;
+    }
+    .modal-backdrop.show .modal-content { transform: translateY(0); opacity: 1; }
+
+    /* Mobile specific adjustments */
+    @media (max-width: 768px) {
+      .grid-cols-timeline { grid-template-columns: 40px repeat(20, minmax(0,1fr)); }
+      .order-block { font-size: 0.65rem; }
+      header { flex-direction: column; align-items: flex-start; }
+      header > div:last-child { width: 100%; justify-content: space-between; margin-top: 1rem; }
+      .kpi { padding: 1rem; }
+    }
+    .rtl-input::placeholder{ text-align: right; }
+  </style>
+</head>
+<body class="font-sans">
+  <div class="max-w-screen-2xl mx-auto px-4 py-6">
+    <!-- Header -->
+    <header class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-8">
+      <div>
+        <h1 class="text-3xl md:text-4xl font-bold text-gray-900">🚚 CRM נהגים – עלי & חכמת</h1>
+        <p class="text-gray-600 text-lg">לוח בקרה חכם לניהול הזמנות ונהגים</p>
+      </div>
+      <div class="flex flex-wrap items-center gap-3">
+        <button id="seedBtn" class="btn btn-success">✨ הדגמת נתונים</button>
+        <button id="newOrderBtn" class="btn btn-primary">➕ הזמנה חדשה</button>
+        <button id="morningReportBtn" class="btn">📊 דו"ח בוקר</button>
+        <button id="citiesBtn" class="btn">🏙️ מאגר ערים</button>
+        <button id="settingsBtn" class="btn">⚙️ הגדרות</button>
+      </div>
+    </header>
+
+    <!-- KPIs -->
+    <section class="mb-8 grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div class="kpi"><div class="text-gray-500 text-sm">הזמנות היום</div><div id="kpiToday" class="text-3xl font-bold text-gray-900">0</div></div>
+      <div class="kpi"><div class="text-gray-500 text-sm">הזמנות מחר</div><div id="kpiTomorrow" class="text-3xl font-bold text-gray-900">0</div></div>
+      <div class="kpi"><div class="text-gray-500 text-sm">עלי – היום</div><div id="kpiAli" class="text-3xl font-bold text-ali">0</div></div>
+      <div class="kpi"><div class="text-gray-500 text-sm">חכמת – היום</div><div id="kpiHikmat" class="text-3xl font-bold text-hikmat">0</div></div>
+    </section>
+
+    <!-- Charts -->
+    <section class="mb-8 grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div class="kpi md:col-span-2">
+        <div class="flex items-center justify-between mb-3"><h3 class="font-semibold text-lg text-gray-800">פילוח לפי שעות (היום)</h3><span class="tag">06:00–16:00</span></div>
+        <canvas id="byHourChart" height="100"></canvas>
+      </div>
+      <div class="kpi">
+        <div class="flex items-center justify-between mb-3"><h3 class="font-semibold text-lg text-gray-800">חלוקה לפי סוג הובלה</h3><span class="tag">ידני / מנוף</span></div>
+        <canvas id="byTypeChart" height="100"></canvas>
+      </div>
+    </section>
+
+    <!-- Timelines -->
+    <section class="mb-8">
+      <h2 class="text-2xl font-bold text-gray-900 mb-4">ציר זמן – היום</h2>
+
+      <div class="glass rounded-3xl p-5 shadow-lg">
+        <div class="flex flex-wrap items-center gap-4 mb-4 text-sm text-gray-700">
+          <div class="flex items-center gap-2"><div class="w-4 h-4 rounded-full bg-ali"></div><span>עלי – פריקה ידנית (איסוזו 5T)</span></div>
+          <div class="flex items-center gap-2"><div class="w-4 h-4 rounded-full bg-hikmat"></div><span>חכמת – הובלת/עבודת מנוף (מרצדס 12T)</span></div>
+          <div class="ms-auto text-gray-500">חלון עבודה: 06:00–16:00</div>
+        </div>
+
+        <!-- Time header -->
+        <div class="grid grid-cols-timeline gap-2 text-xs text-gray-500 font-medium">
+          <div class=""></div>
+          <div id="timeHeaderContainer" class="flex"></div> <!-- Dynamic time headers -->
+        </div>
+        
+        <!-- Ali lane -->
+        <div class="relative mt-3">
+          <div class="grid grid-cols-timeline gap-2">
+            <div class="text-base text-gray-800 font-semibold flex items-center gap-2">👨‍🔧 עלי</div>
+            <div id="gridTicksAli" class="flex border-t border-gray-200 pt-1"></div> <!-- Dynamic grid ticks -->
+          </div>
+          <div id="laneAli" class="relative h-20 mt-1 rounded-2xl overflow-hidden glass lane-ali">
+            <!-- Order blocks for Ali -->
+          </div>
+        </div>
+        
+        <!-- Hikmat lane -->
+        <div class="relative mt-6">
+          <div class="grid grid-cols-timeline gap-2">
+            <div class="text-base text-gray-800 font-semibold flex items-center gap-2">🏗️ חכמת</div>
+            <div id="gridTicksHikmat" class="flex border-t border-gray-200 pt-1"></div> <!-- Dynamic grid ticks -->
+          </div>
+          <div id="laneHikmat" class="relative h-20 mt-1 rounded-2xl overflow-hidden glass lane-hikmat">
+            <!-- Order blocks for Hikmat -->
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Orders Table (today) -->
+    <section class="mb-8">
+      <div class="flex flex-wrap items-center justify-between mb-4 gap-3">
+        <h2 class="text-2xl font-bold text-gray-900">הזמנות – היום</h2>
+        <div class="flex flex-wrap gap-3">
+          <input id="searchInput" class="px-4 py-2 rounded-xl glass border-gray-300 w-full md:w-64 rtl-input" placeholder="חיפוש: לקוח / כתובת / עיר / סטטוס" />
+          <select id="statusFilter" class="px-4 py-2 rounded-xl glass border-gray-300">
+            <option value="">כל הסטטוסים</option>
+            <option value="PLANNED">מתוכנן 📝</option>
+            <option value="EN_ROUTE">בדרך 🚦</option>
+            <option value="LOADING">העמסה 📦</option>
+            <option value="DELAYED">עיכוב ⏳</option>
+            <option value="DONE">סופק ✅</option>
+            <option value="PARTIAL">סופק חלקית ⚠️</option>
+          </select>
+        </div>
+      </div>
+      <div class="overflow-x-auto rounded-2xl glass shadow-md">
+        <table class="min-w-full text-sm">
+          <thead class="bg-gray-100">
+            <tr>
+              <th class="p-3 text-right text-gray-600">שעה</th>
+              <th class="p-3 text-right text-gray-600">נהג</th>
+              <th class="p-3 text-right text-gray-600">לקוח</th>
+              <th class="p-3 text-right text-gray-600">עיר</th>
+              <th class="p-3 text-right text-gray-600">כתובת</th>
+              <th class="p-3 text-right text-gray-600">מחסן</th>
+              <th class="p-3 text-right text-gray-600">סוג</th>
+              <th class="p-3 text-right text-gray-600">מרחק / נסיעה</th>
+              <th class="p-3 text-right text-gray-600">ETA / סיום</th>
+              <th class="p-3 text-right text-gray-600">סטטוס</th>
+              <th class="p-3 text-right text-gray-600">פעולות</th>
+            </tr>
+          </thead>
+          <tbody id="ordersTodayTbody" class="divide-y divide-gray-200"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Morning Report Preview -->
+    <section class="mb-8">
+      <div class="kpi">
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="text-2xl font-bold text-gray-900">תצוגה מקדימה – דו"ח בוקר למחר</h2>
+          <div class="flex gap-2">
+            <button id="copyReportBtn" class="btn">📋 העתקה</button>
+            <a id="waReportLink" href="#" target="_blank" class="btn btn-success">🟢 WhatsApp</a>
+          </div>
+        </div>
+        <pre id="reportPreview" class="whitespace-pre-wrap text-sm bg-gray-50 p-4 rounded-xl border border-gray-200 text-gray-800"></pre>
+      </div>
+    </section>
+
+    <!-- Info Sections -->
+    <section class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div class="kpi">
+        <h3 class="font-semibold text-lg text-gray-800 mb-2">חיזוי זמן הגעה (ETA) – ממוצעים מהיסטוריה</h3>
+        <p class="text-gray-600 text-sm">המערכת מחשבת זמני שירות ממוצעים לכל כתובת/עיר לפי היסטוריית הזמנות. נתונים אלו ישמשו לשיפור חיזוי ETA הבא. ניתן לעדכן ידנית בהגדרות.</p>
+        <div id="etaInsights" class="mt-3 text-sm text-gray-700"></div>
+      </div>
+      <div class="kpi">
+        <h3 class="font-semibold text-lg text-gray-800 mb-2">עיבוד מרחקים – מאגר ערים (סטטי ניתן לעריכה)</h3>
+        <p class="text-gray-600 text-sm">חישובי מרחק מבוססים על מאגר פנימי (בקירוב) מ־"הוד השרון". לשיפור דיוק ושימוש בנתוני תנועה בזמן אמת – חברו ל־<b class="text-blue-600">Google Maps Distance Matrix API</b>.</p>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- Floating Upcoming Alerts -->
+  <div id="alertsStack" class="fixed bottom-4 right-4 z-50 flex flex-col gap-3"></div>
+
+  <!-- Modal: New Order -->
+  <div id="newOrderModal" class="modal-backdrop">
+    <div class="modal-content">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-xl font-bold text-gray-900">➕ הזמנה חדשה / עריכה</h3>
+        <button onclick="UI.closeModal('newOrderModal')" class="btn">✖</button>
+      </div>
+      <form id="newOrderForm" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <input type="hidden" id="orderId" /> <!-- Hidden field for order ID on edit -->
+        <div>
+          <label class="block text-sm text-gray-600 mb-1">נהג *</label>
+          <select id="driver" required class="w-full px-3 py-2 rounded-xl glass border-gray-300 text-gray-800">
+            <option value="ALI">עלי – פריקה ידנית (5T)</option>
+            <option value="HIKMAT">חכמת – עבודת מנוף/הובלת מנוף (12T)</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm text-gray-600 mb-1">סוג הובלה *</label>
+          <select id="jobType" required class="w-full px-3 py-2 rounded-xl glass border-gray-300 text-gray-800">
+            <option value="MANUAL">פריקה ידנית</option>
+            <option value="CRANE">עבודת מנוף / הובלת מנוף</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm text-gray-600 mb-1">תאריך אספקה *</label>
+          <input id="date" type="date" required class="w-full px-3 py-2 rounded-xl glass border-gray-300 text-gray-800" />
+        </div>
+        <div>
+          <label class="block text-sm text-gray-600 mb-1">שעת אספקה (ניתן לגרור בציר הזמן)</label>
+          <input id="time" type="time" value="09:00" class="w-full px-3 py-2 rounded-xl glass border-gray-300 text-gray-800" />
+        </div>
+        <div>
+          <label class="block text-sm text-gray-600 mb-1">לקוח *</label>
+          <input id="customer" required placeholder="שם לקוח" class="w-full px-3 py-2 rounded-xl glass border-gray-300 text-gray-800 rtl-input" />
+          <div id="customerSuggestions" class="absolute z-10 bg-white shadow-lg rounded-b-lg w-auto max-h-40 overflow-y-auto hidden"></div>
+        </div>
+        <div>
+          <label class="block text-sm text-gray-600 mb-1">איש קשר</label>
+          <input id="contact" placeholder="שם איש קשר" class="w-full px-3 py-2 rounded-xl glass border-gray-300 text-gray-800 rtl-input" />
+        </div>
+        <div>
+          <label class="block text-sm text-gray-600 mb-1">טלפון</label>
+          <input id="phone" placeholder="05x-xxxxxxx" class="w-full px-3 py-2 rounded-xl glass border-gray-300 text-gray-800 rtl-input" />
+        </div>
+        <div>
+          <label class="block text-sm text-gray-600 mb-1">וואטסאפ</label>
+          <input id="whatsapp" placeholder="מספר וואטסאפ" class="w-full px-3 py-2 rounded-xl glass border-gray-300 text-gray-800 rtl-input" />
+        </div>
+        <div>
+          <label class="block text-sm text-gray-600 mb-1">עיר *</label>
+          <input id="city" list="cityList" required placeholder="בחר עיר" class="w-full px-3 py-2 rounded-xl glass border-gray-300 text-gray-800 rtl-input" />
+          <datalist id="cityList"></datalist>
+        </div>
+        <div>
+          <label class="block text-sm text-gray-600 mb-1">כתובת *</label>
+          <input id="address" required placeholder="רחוב ומספר" class="w-full px-3 py-2 rounded-xl glass border-gray-300 text-gray-800 rtl-input" />
+        </div>
+        <div>
+          <label class="block text-sm text-gray-600 mb-1">מחסן העמסה *</label>
+          <select id="warehouse" class="w-full px-3 py-2 rounded-xl glass border-gray-300 text-gray-800">
+            <option value="HARASH">מחסן החרש (4) – החרש 10, הוד השרון</option>
+            <option value="TALMID">מחסן התלמיד (1) – התלמיד 6, הוד השרון</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm text-gray-600 mb-1">הערות</label>
+          <input id="notes" placeholder="פרטים חשובים, גישה, קומה, זמן אתר..." class="w-full px-3 py-2 rounded-xl glass border-gray-300 text-gray-800 rtl-input" />
+        </div>
+        
+        <div class="md:col-span-2 glass rounded-2xl p-3 border border-gray-200">
+          <div class="flex flex-wrap items-center gap-3 text-sm text-gray-800">
+            <span class="tag">📍 בסיס: הוד השרון</span>
+            <span id="calcDistanceTag" class="tag">🔎 מרחק: –</span>
+            <span id="calcTravelTag" class="tag">🕒 נסיעה: –</span>
+            <span id="calcServiceTag" class="tag">🔧 שירות: –</span>
+            <span id="calcEtaTag" class="tag">⏱️ הגעה משוערת: –</span>
+            <span id="calcFinishTag" class="tag">✅ סיום משוער: –</span>
+          </div>
+        </div>
+
+        <div class="md:col-span-2 flex flex-wrap items-center gap-3 justify-between">
+          <div class="text-gray-500 text-xs">
+            * זמני ברירת המחדל: פריקה ידנית ~45 ד׳, עבודת מנוף ~90 ד׳. מהירות משוערת: 55 קמ"ש עלי / 50 קמ"ש חכמת.
+            <br/>
+            * שעות עבודה: <span id="workTimeRange">06:00-16:00</span>.
+          </div>
+          <div class="flex items-center gap-2">
+            <button type="button" id="calcBtn" class="btn">🔢 חשב ETA</button>
+            <button type="submit" class="btn btn-primary">💾 שמירה</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Cities DB -->
+  <div id="citiesModal" class="modal-backdrop">
+    <div class="modal-content">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-xl font-bold text-gray-900">🏙️ מאגר ערים ומרחקים (מהוד השרון)</h3>
+        <button onclick="UI.closeModal('citiesModal')" class="btn">✖</button>
+      </div>
+      <div class="text-sm text-gray-600 mb-3">
+        המרחקים מקורבים לשימוש פנימי. ניתן לערוך, להוסיף ולשמור בדפדפן. לשיפור דיוק – חברו ל־Google Maps Distance Matrix API.
+      </div>
+      <div class="flex gap-2 mb-3">
+        <input type="text" id="newCityName" placeholder="הוסף עיר חדשה" class="w-full px-3 py-2 rounded-xl glass border-gray-300 text-gray-800 rtl-input" />
+        <input type="number" id="newCityDistance" placeholder="מרחק (קמ)" class="w-28 px-3 py-2 rounded-xl glass border-gray-300 text-gray-800" />
+        <button id="addCityBtn" class="btn btn-primary">➕</button>
+      </div>
+      <div class="max-h-[50vh] overflow-auto rounded-xl glass shadow-inner">
+        <table class="min-w-full text-sm">
+          <thead class="bg-gray-100 sticky top-0"><tr><th class="p-3 text-right text-gray-600">עיר</th><th class="p-3 text-right text-gray-600">מרחק (ק"מ)</th><th class="p-3"></th></tr></thead>
+          <tbody id="citiesTbody" class="divide-y divide-gray-200"></tbody>
+        </table>
+      </div>
+      <div class="mt-4 flex items-center gap-2 justify-end">
+        <button id="saveCitiesBtn" class="btn btn-success">שמירת שינויים</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Settings -->
+  <div id="settingsModal" class="modal-backdrop">
+    <div class="modal-content">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-xl font-bold text-gray-900">⚙️ הגדרות מערכת</h3>
+        <button onclick="UI.closeModal('settingsModal')" class="btn">✖</button>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+        <div>
+          <label class="block text-sm text-gray-600 mb-1">כתובת Apps Script (Webhook) *</label>
+          <input id="appsScriptUrl" required placeholder="הדבק כאן את ה-URL מ-GAS" class="w-full px-3 py-2 rounded-xl glass border-gray-300 text-gray-800" />
+          <div class="text-xs text-gray-500 mt-1">שימוש: קריאה/כתיבה ל-Google Sheets, שליחת דוחות.</div>
+        </div>
+        <div>
+          <label class="block text-sm text-gray-600 mb-1">Apps Script Auth Token *</label>
+          <input id="appsScriptToken" type="password" required placeholder="הדבק כאן את ה-TOKEN הסודי" class="w-full px-3 py-2 rounded-xl glass border-gray-300 text-gray-800" />
+          <div class="text-xs text-gray-500 mt-1">לאבטחת התקשורת מול השרת.</div>
+        </div>
+        <div>
+          <label class="block text-sm text-gray-600 mb-1">שעות עבודה (התחלה)</label>
+          <input id="workStart" type="time" value="06:00" class="w-full px-3 py-2 rounded-xl glass border-gray-300 text-gray-800" />
+        </div>
+        <div>
+          <label class="block text-sm text-gray-600 mb-1">שעות עבודה (סיום)</label>
+          <input id="workEnd" type="time" value="16:00" class="w-full px-3 py-2 rounded-xl glass border-gray-300 text-gray-800" />
+        </div>
+        <div>
+          <label class="block text-sm text-gray-600 mb-1">משך שירות ברירת מחדל – פריקה ידנית (דקות)</label>
+          <input id="svcManual" type="number" value="45" class="w-full px-3 py-2 rounded-xl glass border-gray-300 text-gray-800" />
+        </div>
+        <div>
+          <label class="block text-sm text-gray-600 mb-1">משך שירות ברירת מחדל – עבודת מנוף (דקות)</label>
+          <input id="svcCrane" type="number" value="90" class="w-full px-3 py-2 rounded-xl glass border-gray-300 text-gray-800" />
+        </div>
+        <div>
+          <label class="block text-sm text-gray-600 mb-1">מהירות ממוצעת – עלי (קמ"ש)</label>
+          <input id="speedAli" type="number" value="55" class="w-full px-3 py-2 rounded-xl glass border-gray-300 text-gray-800" />
+        </div>
+        <div>
+          <label class="block text-sm text-gray-600 mb-1">מהירות ממוצעת – חכמת (קמ"ש)</label>
+          <input id="speedHikmat" type="number" value="50" class="w-full px-3 py-2 rounded-xl glass border-gray-300 text-gray-800" />
+        </div>
+      </div>
+      <div class="mt-6 flex justify-end gap-2">
+        <button id="saveSettingsBtn" class="btn btn-success">שמירה</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Customer Map -->
+  <div id="customerMapModal" class="modal-backdrop">
+    <div class="modal-content w-[min(1000px,95vw)]">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-xl font-bold text-gray-900">🗺️ מפת נסיעה ללקוח</h3>
+        <button onclick="UI.closeModal('customerMapModal')" class="btn">✖</button>
+      </div>
+      <div id="customerMapContent" class="w-full h-[60vh] rounded-xl overflow-hidden border border-gray-300 bg-gray-100 flex items-center justify-center text-gray-500">
+        <p>טוען מפה...</p>
+      </div>
+      <div class="mt-4 text-sm text-gray-700">
+        <p><b>פרטי הזמנה:</b> <span id="mapOrderId"></span> - <span id="mapCustomer"></span>, <span id="mapAddress"></span></p>
+        <p id="mapWazeText" class="mt-2"></p>
+        <div class="mt-3 flex gap-2">
+          <a id="mapOpenWaze" href="#" target="_blank" class="btn btn-primary">🚗 פתח ב-Waze</a>
+          <a id="mapSendWhatsapp" href="#" target="_blank" class="btn btn-success">🟢 שלח ללקוח בוואטסאפ</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- Templates -->
+  <template id="timeHeaderTpl">
+    <div class="relative text-center timeline-tick"></div>
+  </template>
+  <template id="gridTickTpl">
+    <div class="h-full relative timeline-tick"></div>
+  </template>
+  <template id="orderRowTpl">
+    <tr class="hover:bg-gray-50 transition-colors duration-150">
+      <td class="p-3 font-mono text-gray-800"></td>
+      <td class="p-3 text-gray-800"></td>
+      <td class="p-3 text-gray-800"></td>
+      <td class="p-3 text-gray-800"></td>
+      <td class="p-3 text-gray-800"></td>
+      <td class="p-3 text-gray-800"></td>
+      <td class="p-3 text-gray-800"></td>
+      <td class="p-3 text-gray-800"></td>
+      <td class="p-3 text-gray-800"></td>
+      <td class="p-3 text-gray-800"></td>
+      <td class="p-3">
+        <div class="flex flex-wrap gap-2 text-xs">
+          <button class="btn px-2 py-1" data-act="view">👁️</button>
+          <button class="btn px-2 py-1" data-act="edit">✏️</button>
+          <button class="btn btn-success px-2 py-1" data-act="whatsapp">💬</button>
+          <button class="btn btn-primary px-2 py-1" data-act="driverLink">🔗 נהג</button>
+          <button class="btn px-2 py-1" data-act="status:EN_ROUTE">🚚</button>
+          <button class="btn px-2 py-1" data-act="status:LOADING">📦</button>
+          <button class="btn btn-danger px-2 py-1" data-act="status:DELAYED">⏳</button>
+          <button class="btn btn-warning px-2 py-1" data-act="status:PARTIAL">🟡</button>
+          <button class="btn btn-success px-2 py-1" data-act="status:DONE">✅</button>
+          <button class="btn px-2 py-1" data-act="deliveryNote"># תעודה</button>
+          <button class="btn btn-danger px-2 py-1" data-act="delete">🗑️</button>
+        </div>
+      </td>
+    </tr>
+  </template>
+
+  <script>
+  // ====== State & Constants ======
+  const STORE_KEY = 'crm_orders_v2';
+  const CITIES_KEY = 'crm_cities_v2';
+  const SETTINGS_KEY = 'crm_settings_v2';
+  const LAST_FETCH_KEY = 'crm_last_fetch_v2'; // To manage cache with Apps Script
+
+  const DRIVERS = {
+    ALI: { id: 'ALI', name: 'עלי', type: 'MANUAL', color: '#16a34a', speedKey: 'speedAli' },
+    HIKMAT: { id: 'HIKMAT', name: 'חכמת', type: 'CRANE', color: '#0ea5e9', speedKey: 'speedHikmat' },
+  };
+
+  const JOB_TYPES = {
+    MANUAL: { label: 'פריקה ידנית', svcKey: 'svcManual' },
+    CRANE: { label: 'עבודת מנוף / הובלת מנוף', svcKey: 'svcCrane' },
+  };
+
+  const WAREHOUSES = {
+    HARASH: { code: 4, label: 'מחסן החרש (4) – החרש 10, הוד השרון' },
+    TALMID: { code: 1, label: 'מחסן התלמיד (1) – התלמיד 6, הוד השרון' },
+  };
+
+  const STATUSES = {
+    PLANNED: 'מתוכנן', EN_ROUTE: 'בדרך', LOADING: 'העמסה', DELAYED: 'עיכוב', DONE: 'סופק', PARTIAL: 'סופק חלקית'
+  };
+
+  // Maps status to a Tailwind CSS class for visual representation
+  const STATUS_CLASSES = {
+    PLANNED: 'tag-status-PLANNED',
+    EN_ROUTE: 'tag-status-EN_ROUTE',
+    LOADING: 'tag-status-LOADING',
+    DELAYED: 'tag-status-DELAYED',
+    DONE: 'tag-status-DONE',
+    PARTIAL: 'tag-status-PARTIAL'
+  };
+
+  let state = {
+    orders: [], // Array of order objects
+    cities: {}, // Object of cities {cityName: distanceKm}
+    settings: {
+      appsScriptUrl: '',
+      appsScriptToken: '', // New: API token for Apps Script
+      workStart: '06:00',
+      workEnd: '16:00',
+      svcManual: 45,
+      svcCrane: 90,
+      speedAli: 55,
+      speedHikmat: 50,
+      // Add more settings as needed, e.g., googleDistanceMatrixApiKey
+    },
+    cache: { // Client-side cache for Apps Script data
+      orders: [],
+      lastFetched: null,
+    }
+  };
+
+  // ====== Utility Functions ======
+  const U = {
+    /** Generates a unique ID. */
+    uid: () => 'ORD_' + Math.random().toString(36).slice(2) + Date.now().toString().slice(-5),
+    /** Formats minutes from day start to HH:mm string. */
+    fmtTime: (m) => dayjs().startOf('day').add(m, 'minute').format('HH:mm'),
+    /** Parses HH:mm string to minutes from day start. */
+    parseTimeToMinutes: (hhmm) => {
+      if (!hhmm) return 0;
+      const [h, m] = hhmm.split(':').map(Number);
+      return h * 60 + m;
+    },
+    /** Clamps a value between a min and max. */
+    clamp: (v, min, max) => Math.min(Math.max(v, min), max),
+    /** Formats kilometers. */
+    km: (n) => `${Number(n).toFixed(0)} ק"מ`,
+    /** Formats minutes. */
+    min: (n) => `${Number(n).toFixed(0)} ד׳`,
+    /** Rounds a number to the nearest 'r' (e.g., r=15 for 15-minute intervals). */
+    round: (n, r = 5) => Math.round(n / r) * r,
+    /** Returns today's date as YYYY-MM-DD string. */
+    todayStr: () => dayjs().format('YYYY-MM-DD'),
+    /** Returns tomorrow's date as YYYY-MM-DD string. */
+    tomorrowStr: () => dayjs().add(1, 'day').format('YYYY-MM-DD'),
+    /** URL-encodes a string. */
+    encode: (str) => encodeURIComponent(str || ''),
+    /** Simple fuzzy search for autocomplete. */
+    fuzzySearch: (list, query, keys) => {
+      if (!query) return [];
+      const lowerQuery = query.toLowerCase();
+      return list.filter(item => 
+        keys.some(key => (item[key] || '').toLowerCase().includes(lowerQuery))
+      );
+    }
+  };
+
+  // ====== Local Storage Management ======
+  const Storage = {
+    /** Loads state from localStorage. */
+    load() {
+      state.orders = JSON.parse(localStorage.getItem(STORE_KEY) || '[]');
+      state.cities = JSON.parse(localStorage.getItem(CITIES_KEY) || 'null') || Defaults.cities();
+      state.settings = Object.assign(state.settings, JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}'));
+      state.cache.lastFetched = localStorage.getItem(LAST_FETCH_KEY);
+    },
+    /** Saves state to localStorage. */
+    save() {
+      localStorage.setItem(STORE_KEY, JSON.stringify(state.orders));
+      localStorage.setItem(CITIES_KEY, JSON.stringify(state.cities));
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify(state.settings));
+      localStorage.setItem(LAST_FETCH_KEY, state.cache.lastFetched || '');
+    }
+  };
+
+  // ====== Default Data (for initial setup) ======
+  const Defaults = {
+    cities() {
+      return {
+        'הוד השרון': 0, 'רעננה': 5, 'כפר סבא': 6, 'הרצליה': 9, 'אבן יהודה': 14,
+        'בית יהושע': 18, 'רמת גן': 15, 'גבעתיים': 16, 'תל אביב-יפו': 18, 'בני ברק': 18,
+        'פתח תקווה': 10, 'קריית אונו': 14, 'יהוד-מונוסון': 18, 'אור יהודה': 17, 'ראש העין': 16,
+        'רמת השרון': 8, 'נתניה': 25, 'כפר יונה': 22, 'טירה': 12, 'טייבה': 17,
+        'חדרה': 38, 'פרדס חנה-כרכור': 35, 'בנימינה-גבעת עדה': 42, 'זכרון יעקב': 50, 'עתלית': 68,
+        'חיפה': 85, 'קרית אתא': 92, 'יקנעם עילית': 70, 'עפולה': 95, 'נוף הגליל': 105,
+        'טבריה': 135, 'כרמיאל': 125, 'ראש פינה': 150, 'רחובות': 45, 'נס ציונה': 40,
+        'מודיעין-מכבים-רעות': 35, 'לוד': 26, 'רמלה': 30, 'חולון': 25, 'בת ים': 27,
+        'ראשון לציון': 30, 'אשדוד': 60, 'באר שבע': 120
+      };
+    },
+    // Sample orders for quick demo
+    sampleOrders(baseToday, baseTmr) {
+      return [
+        {driver:'ALI', jobType:'MANUAL', date: baseToday, time:'08:00', customer:'אגם נכסים', contact:'דני לוי', phone:'0501234567', whatsapp:'0501234567', city:'הוד השרון', address:'החרש 10', warehouse:'HARASH', notes:'קומת קרקע'},
+        {driver:'HIKMAT', jobType:'CRANE', date: baseToday, time:'10:00', customer:'שני אילתי', contact:'שני', phone:'0523456789', whatsapp:'0523456789', city:'מודיעין-מכבים-רעות', address:'האגוז 5', warehouse:'HARASH', notes:'נדרש מנוף 12T'},
+        {driver:'HIKMAT', jobType:'CRANE', date: baseToday, time:'12:00', customer:'תמר וולדורף', contact:'תמר', phone:'0549876543', whatsapp:'0549876543', city:'תל אביב-יפו', address:'דיזנגוף 100', warehouse:'TALMID', notes:'חניה צפופה'},
+        {driver:'ALI', jobType:'MANUAL', date: baseToday, time:'14:00', customer:'ברק אלקטרוניקה', contact:'בני', phone:'0501112233', whatsapp:'0501112233', city:'פתח תקווה', address:'השחם 1', warehouse:'TALMID', notes:'משלוח קטן'},
+        {driver:'ALI', jobType:'MANUAL', date: baseTmr, time:'06:30', customer:'אגם נכסים', contact:'דני לוי', phone:'0501234567', whatsapp:'0501234567', city:'רעננה', address:'הפועל 20', warehouse:'HARASH', notes:'לפני 07:00'},
+        {driver:'HIKMAT', jobType:'CRANE', date: baseTmr, time:'07:00', customer:'מידן לירן', contact:'מידן', phone:'0587654321', whatsapp:'0587654321', city:'נתניה', address:'היהלום 3', warehouse:'HARASH', notes:'קבלן ראשי: גדעון'},
+        {driver:'HIKMAT', jobType:'CRANE', date: baseTmr, time:'10:00', customer:'תלתן', contact:'לימור', phone:'0531234567', whatsapp:'0531234567', city:'חדרה', address:'צומת אולגה', warehouse:'TALMID', notes:'קונטיינר'},
+        {driver:'ALI', jobType:'MANUAL', date: baseTmr, time:'13:00', customer:'משה כהן', contact:'משה', phone:'0505554433', whatsapp:'0505554433', city:'רחובות', address:'הרצל 120', warehouse:'TALMID', notes:'סחורה עדינה'},
+      ];
+    }
+  };
+
+  /** Initializes the city datalist for input fields. */
+  function initCityDatalist() {
+    const dl = document.getElementById('cityList');
+    dl.innerHTML = ''; // Clear previous options
+    Object.keys(state.cities).sort((a, b) => a.localeCompare(b, 'he')).forEach(city => {
+      const opt = document.createElement('option');
+      opt.value = city;
+      dl.appendChild(opt);
+    });
+  }
+
+  // ====== Distance & ETA Calculations ======
+  /** Gets the approximated distance in KM for a given city. */
+  function distanceKm(city) {
+    return state.cities[city] ?? null;
+  }
+  /** Gets the average speed for a driver. */
+  function speedFor(driverId) {
+    return Number(state.settings[DRIVERS[driverId].speedKey] || 50);
+  }
+  /** Gets the default service time for a job type. */
+  function svcFor(jobType) {
+    return Number(state.settings[JOB_TYPES[jobType].svcKey] || 60);
+  }
+
+  /**
+   * Calculates Estimated Time of Arrival (ETA) and Estimated Finish Time.
+   * @param {object} {driver, jobType, city, startHHMM} - Order parameters.
+   * @returns {object} - Calculated km, travelMin, serviceMin, arriveHHMM, finishHHMM.
+   */
+  function calcETA({
+    driver,
+    jobType,
+    city,
+    startHHMM
+  }) {
+    const km = distanceKm(city) ?? 0;
+    const spd = speedFor(driver);
+    // Add a small buffer to avoid division by zero if speed is 0
+    const travelMin = km / Math.max(1, spd) * 60; 
+    const serviceMin = svcFor(jobType);
+    const startMin = U.parseTimeToMinutes(startHHMM || '09:00');
+
+    // Here we'd add logic for traffic constraints if implemented
+    // const extraBuffer = calculateTrafficBuffer({ driver, date, time, route });
+
+    const arriveMin = startMin + travelMin;
+    const finishMin = arriveMin + serviceMin;
+
+    const arriveHHMM = U.fmtTime(U.round(arriveMin, 5)); // Round to nearest 5 minutes
+    const finishHHMM = U.fmtTime(U.round(finishMin, 5));
+
+    return {
+      km,
+      travelMin: Math.round(travelMin),
+      serviceMin,
+      arriveHHMM,
+      finishHHMM
+    };
+  }
+
+  // ====== UI Helper Functions ======
+  const UI = {
+    /** Query selector shorthand. */
+    qs: (sel, el = document) => el.querySelector(sel),
+    /** Query selector all shorthand. */
+    qsa: (sel, el = document) => Array.from(el.querySelectorAll(sel)),
+
+    /** Opens a modal by adding 'show' class to its backdrop. */
+    openModal: (id) => document.getElementById(id).classList.add('show'),
+    /** Closes a modal by removing 'show' class from its backdrop. */
+    closeModal: (id) => document.getElementById(id).classList.remove('show'),
+
+    /** Updates ETA calculation tags in the new order form. */
+    tagUpdate({
+      km,
+      travelMin,
+      serviceMin,
+      arriveHHMM,
+      finishHHMM
+    }) {
+      document.getElementById('calcDistanceTag').textContent = `🔎 מרחק: ${U.km(km)}`;
+      document.getElementById('calcTravelTag').textContent = `🕒 נסיעה: ${U.min(travelMin)}`;
+      document.getElementById('calcServiceTag').textContent = `🔧 שירות: ${U.min(serviceMin)}`;
+      document.getElementById('calcEtaTag').textContent = `⏱️ הגעה משוערת: ${arriveHHMM}`;
+      document.getElementById('calcFinishTag').textContent = `✅ סיום משוער: ${finishHHMM}`;
+    },
+
+    /**
+     * Displays a toast notification.
+     * @param {string} msg - The message to display.
+     * @param {string} [bgColorClass='bg-gray-800'] - Tailwind CSS background color class.
+     * @param {number} [duration=5000] - Duration in milliseconds.
+     */
+    toast(msg, bgColorClass = 'bg-gray-800', duration = 5000) {
+      const el = document.createElement('div');
+      el.className = `glass text-white border border-gray-300 rounded-full p-3 shadow-lg ${bgColorClass}`;
+      el.textContent = msg;
+      const stack = document.getElementById('alertsStack');
+      stack.appendChild(el);
+      // Fade out after duration
+      setTimeout(() => {
+        el.style.opacity = '0';
+        el.style.transform = 'translateY(-10px)';
+        setTimeout(() => el.remove(), 500); // Remove after transition
+      }, duration - 500);
+    }
+  };
+
+  // ====== Apps Script API Integration ======
+  /**
+   * Generic API call to the Google Apps Script Web App.
+   * Includes authentication token.
+   * @param {string} action - The action to perform (e.g., 'listOrders', 'saveOrder').
+   * @param {object} payload - The data to send with the action.
+   * @returns {Promise<any>} - The data returned from the API if successful.
+   * @throws {Error} - If API URL/token is missing or API call fails.
+   */
+  async function api(action, payload) {
+    const url = state.settings.appsScriptUrl?.trim();
+    const token = state.settings.appsScriptToken?.trim();
+
+    if (!url) {
+      UI.toast('❌ שגיאה: כתובת Apps Script Webhook חסרה בהגדרות.', 'bg-red-500');
+      throw new Error('Apps Script URL is not set.');
+    }
+    if (!token) {
+      UI.toast('❌ שגיאה: Apps Script Auth Token חסר בהגדרות.', 'bg-red-500');
+      throw new Error('Apps Script Auth Token is not set.');
+    }
+
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CRM-TOKEN': token // Custom header for authentication
+        },
+        body: JSON.stringify({
+          action,
+          payload
+        })
+      });
+      const data = await res.json();
+      if (!data.ok) {
+        throw new Error(data.error || 'שגיאת API כללית משרת Apps Script');
+      }
+      return data.data;
+    } catch (error) {
+      console.error("Apps Script API Error:", error);
+      UI.toast(`❌ שגיאת תקשורת לשרת: ${error.message}`, 'bg-red-500');
+      throw error;
+    }
+  }
+
+  /**
+   * Syncs orders from Apps Script to local state and cache.
+   * Implements a simple cache mechanism to reduce API calls.
+   */
+  async function syncOrdersFromSheet() {
+    const twentyMinutes = 20 * 60 * 1000;
+    const now = dayjs();
+
+    // Check if cache is fresh enough (e.g., last fetch less than 5 minutes ago)
+    if (state.cache.lastFetched && now.diff(dayjs(state.cache.lastFetched), 'minute') < 5) {
+      console.log("Using cached orders. Last fetched:", state.cache.lastFetched);
+      state.orders = state.cache.orders; // Use cached data
+      renderAll();
+      return;
+    }
+
+    try {
+      UI.toast('🔄 מסנכרן נתונים מ-Google Sheets...', 'bg-blue-500');
+      const data = await api('listOrders', {}); // Fetch all active orders
+      state.orders = data;
+      state.cache.orders = data; // Update cache
+      state.cache.lastFetched = now.toISOString(); // Update last fetched timestamp
+      Storage.save(); // Persist to local storage
+      UI.toast('✅ סנכרון הושלם בהצלחה!', 'bg-green-500');
+      renderAll(); // Re-render UI after sync
+    } catch (error) {
+      console.error("Failed to sync orders from sheet:", error);
+      UI.toast('❌ נכשל סנכרון נתונים מהגיליון.', 'bg-red-500');
+    }
+  }
+
+  // ====== Orders Logic ======
+  /**
+   * Adds a new order or updates an existing one both locally and via Apps Script.
+   * @param {object} order - The order object.
+   */
+  async function addOrUpdateOrder(order) {
+    try {
+      UI.toast('💾 שומר הזמנה...', 'bg-blue-500');
+      const savedOrder = await api('saveOrder', order); // Send to Apps Script
+      // Update local state and cache after successful API call
+      const existingIndex = state.orders.findIndex(o => o.id === savedOrder.id);
+      if (existingIndex !== -1) {
+        Object.assign(state.orders[existingIndex], savedOrder); // Update existing
+      } else {
+        state.orders.push(savedOrder); // Add new
+      }
+      state.cache.orders = [...state.orders]; // Refresh cache
+      Storage.save();
+      UI.toast('✅ הזמנה נשמרה בהצלחה!', 'bg-green-500');
+      renderAll();
+      maybeAlertSoon(savedOrder);
+      suggestFitWithinShift(savedOrder.driver, savedOrder.date);
+    } catch (error) {
+      UI.toast(`❌ נכשל שמירת הזמנה: ${error.message}`, 'bg-red-500');
+    }
+  }
+
+  /**
+   * Removes an order both locally and via Apps Script.
+   * @param {string} id - The ID of the order to remove.
+   */
+  async function removeOrder(id) {
+    if (!confirm('האם אתה בטוח שברצונך למחוק הזמנה זו?')) return;
+    try {
+      UI.toast('🗑️ מוחק הזמנה...', 'bg-red-500');
+      await api('deleteOrder', {
+        id
+      }); // Send to Apps Script
+      state.orders = state.orders.filter(o => o.id !== id);
+      state.cache.orders = [...state.orders]; // Refresh cache
+      Storage.save();
+      UI.toast('✅ הזמנה נמחקה בהצלחה!', 'bg-green-500');
+      renderAll();
+    } catch (error) {
+      UI.toast(`❌ נכשל מחיקת הזמנה: ${error.message}`, 'bg-red-500');
+    }
+  }
+
+  /**
+   * Updates an order's status both locally and via Apps Script.
+   * @param {string} id - The ID of the order.
+   * @param {object} patch - The fields to update (e.g., {status: 'EN_ROUTE'}).
+   */
+  async function updateOrderStatus(id, patch) {
+    try {
+      UI.toast('🔄 מעדכן סטטוס...', 'bg-blue-500');
+      const updatedOrder = await api('updateStatus', {
+        id,
+        status: patch.status
+      }); // Send to Apps Script
+      const existingOrder = state.orders.find(x => x.id === id);
+      if (existingOrder) {
+        Object.assign(existingOrder, patch, {
+          updatedAt: new Date().toISOString()
+        });
+      }
+      state.cache.orders = [...state.orders]; // Refresh cache
+      Storage.save();
+      UI.toast(`✅ סטטוס עודכן ל: ${STATUSES[patch.status]}`, 'bg-green-500');
+      renderAll();
+    } catch (error) {
+      UI.toast(`❌ נכשל עדכון סטטוס: ${error.message}`, 'bg-red-500');
+    }
+  }
+
+  /**
+   * Filters and sorts orders for a specific day.
+   * @param {string} dayStr - Date in YYYY-MM-DD format.
+   * @returns {Array<object>} - Filtered and sorted orders.
+   */
+  function listByDay(dayStr) {
+    return state.orders.filter(o => o.date === dayStr).sort((a, b) => U.parseTimeToMinutes(a.time) - U.parseTimeToMinutes(b.time));
+  }
+  /** Returns orders scheduled for today. */
+  function listToday() {
+    return listByDay(U.todayStr());
+  }
+  /** Returns orders scheduled for tomorrow. */
+  function listTomorrow() {
+    return listByDay(U.tomorrowStr());
+  }
+
+  // ====== Timeline Render & Drag ======
+  const DAY_START_MIN = U.parseTimeToMinutes(state.settings.workStart);
+  const DAY_END_MIN = U.parseTimeToMinutes(state.settings.workEnd);
+  const DAY_TOTAL_MIN = DAY_END_MIN - DAY_START_MIN;
+
+  /** Calculates the left position percentage for an order block on the timeline. */
+  function minutesToLeft(min) {
+    return (min - DAY_START_MIN) / DAY_TOTAL_MIN;
+  }
+
+  /** Renders the timeline with time headers, grid ticks, and order blocks. */
+  function renderTimeline() {
+    const timeHeaderContainer = document.getElementById('timeHeaderContainer');
+    timeHeaderContainer.innerHTML = ''; // Clear existing headers
+
+    // Render time headers (e.g., 06:00, 07:00, ...)
+    for (let m = DAY_START_MIN; m <= DAY_END_MIN; m += 60) { // Hourly ticks
+      const d = document.createElement('div');
+      d.className = 'relative text-center flex-1'; // Use flex-1 for even distribution
+      d.innerHTML = `<div class='timeline-tick absolute inset-0'></div><div class='relative z-10'>${U.fmtTime(m)}</div>`;
+      timeHeaderContainer.appendChild(d);
+    }
+
+    // Render grid ticks for lanes
+    ['gridTicksAli', 'gridTicksHikmat'].forEach(id => {
+      const cont = document.getElementById(id);
+      cont.innerHTML = ''; // Clear previous ticks
+      for (let m = DAY_START_MIN; m <= DAY_END_MIN; m += 30) { // 30-minute ticks
+        const d = document.createElement('div');
+        d.className = 'h-3 relative flex-1'; // Use flex-1
+        d.innerHTML = '<div class="timeline-tick absolute inset-0"></div>';
+        cont.appendChild(d);
+      }
+    });
+
+    const lanes = {
+      ALI: document.getElementById('laneAli'),
+      HIKMAT: document.getElementById('laneHikmat')
+    };
+    Object.values(lanes).forEach(l => l.innerHTML = ''); // Clear existing order blocks
+
+    const today = listToday();
+    for (const o of today) {
+      const lane = lanes[o.driver];
+      if (!lane) continue;
+
+      const startMin = U.parseTimeToMinutes(o.time);
+      const estimatedDurationMin = Math.max(o.travelMin + o.serviceMin, 30); // Min duration 30min
+      
+      const leftPct = minutesToLeft(startMin) * 100;
+      const widthPct = (estimatedDurationMin / DAY_TOTAL_MIN) * 100;
+
+      const driverColorClass = DRIVERS[o.driver].id === 'ALI' ? 'bg-ali' : 'bg-hikmat';
+      const el = document.createElement('div');
+      el.className = `order-block ${driverColorClass}/80 hover:${driverColorClass} transition-all duration-150`;
+      el.style.left = `calc(${leftPct}% + 4px)`; // Add padding to left
+      el.style.width = `calc(${widthPct}% - 8px)`; // Subtract padding from width
+      el.dataset.id = o.id;
+
+      el.innerHTML = `<div class='p-2 text-xs leading-4 text-white'>
+        <div class='font-semibold'>${o.customer} · ${o.city}</div>
+        <div class='opacity-80'>${o.time} → ETA ${o.arriveHHMM}</div>
+        <div class='opacity-70'>${STATUSES[o.status] || 'מתוכנן'}</div>
+      </div>`;
+
+      enableDrag(el, lane, o);
+      lane.appendChild(el);
+    }
+  }
+
+  /**
+   * Enables drag-and-drop functionality for order blocks on the timeline.
+   * Includes auto-snap and overlap detection.
+   * @param {HTMLElement} el - The order block element.
+   * @param {HTMLElement} lane - The driver's timeline lane.
+   * @param {object} orderData - The original order data.
+   */
+  function enableDrag(el, lane, orderData) {
+    let startX, origLeft, isDown = false;
+    const id = el.dataset.id;
+    const orderDuration = orderData.travelMin + orderData.serviceMin;
+
+    const onDown = (e) => {
+      isDown = true;
+      el.classList.add('dragging');
+      startX = (e.touches ? e.touches[0].clientX : e.clientX);
+      origLeft = el.offsetLeft;
+      e.preventDefault(); // Prevent default touch behavior (scrolling)
+    };
+
+    const onMove = (e) => {
+      if (!isDown) return;
+      const x = (e.touches ? e.touches[0].clientX : e.clientX);
+      const dx = x - startX;
+      let newLeft = origLeft + dx;
+
+      // Clamp to lane boundaries
+      const maxLeft = lane.clientWidth - el.clientWidth - 8; // Adjust for padding
+      el.style.left = `${U.clamp(newLeft, 4, maxLeft)}px`; // Adjust for padding
+    };
+
+    const onUp = async () => {
+      if (!isDown) return;
+      isDown = false;
+      el.classList.remove('dragging');
+
+      const leftPx = el.offsetLeft;
+      const laneWidthPx = lane.clientWidth;
+
+      // Calculate new start time based on new position
+      const newStartMinRaw = (leftPx / laneWidthPx) * DAY_TOTAL_MIN + DAY_START_MIN;
+      const newStartMinSnapped = U.round(newStartMinRaw, 15); // Snap to nearest 15 minutes
+      const newStartTimeHHMM = U.fmtTime(newStartMinSnapped);
+
+      // Re-calculate ETA with new start time
+      const updatedETA = calcETA({
+        driver: orderData.driver,
+        jobType: orderData.jobType,
+        city: orderData.city,
+        startHHMM: newStartTimeHHMM
+      });
+
+      // Check for overlaps with other orders in the same lane
+      const overlaps = checkOverlap(id, orderData.driver, newStartTimeHHMM, updatedETA.finishHHMM);
+      if (overlaps) {
+        UI.toast('⚠️ אזהרה: חפיפה עם הזמנה אחרת. אנא שנה את השעה.', 'bg-warning', 7000);
+        // Optionally revert position or highlight overlap
+      }
+
+      // Check if new finish time exceeds work end
+      const finishMin = U.parseTimeToMinutes(updatedETA.finishHHMM);
+      if (finishMin > DAY_END_MIN) {
+        UI.toast('🚨 עומס יתר: סיום חורג משעות העבודה (16:00). שקול דחייה או החלפה.', 'bg-danger', 8000);
+      }
+      
+      // Update order in state and persist
+      await addOrUpdateOrder({ ...orderData, time: newStartTimeHHMM, ...updatedETA });
+      UI.toast(`⏱️ שעה עודכנה ל: ${newStartTimeHHMM}`);
+    };
+
+    el.addEventListener('mousedown', onDown);
+    el.addEventListener('touchstart', onDown, {
+      passive: false
+    });
+    window.addEventListener('mousemove', onMove, {
+      passive: false
+    });
+    window.addEventListener('touchmove', onMove, {
+      passive: false
+    });
+    window.addEventListener('mouseup', onUp);
+    window.addEventListener('touchend', onUp);
+  }
+
+  /**
+   * Checks for overlaps with other orders for a given driver and time slot.
+   * @param {string} currentOrderId - The ID of the order being checked (to exclude itself).
+   * @param {string} driverId - The driver's ID.
+   * @param {string} newStartHHMM - The proposed start time (HH:mm).
+   * @param {string} newFinishHHMM - The proposed finish time (HH:mm).
+   * @returns {boolean} - True if an overlap is detected, false otherwise.
+   */
+  function checkOverlap(currentOrderId, driverId, newStartHHMM, newFinishHHMM) {
+    const newStartMin = U.parseTimeToMinutes(newStartHHMM);
+    const newFinishMin = U.parseTimeToMinutes(newFinishHHMM);
+
+    const conflictingOrders = listToday().filter(o =>
+      o.id !== currentOrderId && // Exclude the current order itself
+      o.driver === driverId &&
+      ((U.parseTimeToMinutes(o.time) < newFinishMin && U.parseTimeToMinutes(o.finishHHMM) > newStartMin))
+    );
+    return conflictingOrders.length > 0;
+  }
+
+  // ====== Orders Table Render ======
+  /** Renders the table of today's orders. */
+  function renderOrdersTable() {
+    const tbody = document.getElementById('ordersTodayTbody');
+    tbody.innerHTML = ''; // Clear existing rows
+
+    let rows = listToday();
+    const query = document.getElementById('searchInput').value?.trim().toLowerCase();
+    const statusF = document.getElementById('statusFilter').value;
+
+    if (query) {
+      rows = rows.filter(o =>
+        [o.customer, o.city, o.address, STATUSES[o.status]].some(field =>
+          (field || '').toLowerCase().includes(query)
+        )
+      );
+    }
+    if (statusF) {
+      rows = rows.filter(o => o.status === statusF);
+    }
+
+    for (const o of rows) {
+      const tr = document.getElementById('orderRowTpl').content.firstElementChild.cloneNode(true);
+      const [tdTime, tdDrv, tdCust, tdCity, tdAddr, tdWh, tdType, tdDist, tdETA, tdStatus, tdActions] = tr.children;
+
+      tdTime.textContent = o.time;
+      tdDrv.textContent = DRIVERS[o.driver].name;
+      tdCust.textContent = o.customer;
+      tdCity.textContent = o.city;
+      tdAddr.textContent = o.address || '';
+      tdWh.textContent = WAREHOUSES[o.warehouse].label.split(' – ')[0]; // Just the warehouse name
+      tdType.textContent = JOB_TYPES[o.jobType].label;
+      tdDist.innerHTML = `${U.km(o.km)}<br/>${U.min(o.travelMin)}`; // Distance and travel time
+      tdETA.innerHTML = `${o.arriveHHMM} → ${o.finishHHMM}`; // Arrive and finish time
+      tdStatus.innerHTML = `<span class='tag ${STATUS_CLASSES[o.status]}'>${STATUSES[o.status]}</span>`; // Colored status tag
+
+      // Event listeners for action buttons
+      tdActions.querySelectorAll('button').forEach(btn => {
+        const [kind, value] = (btn.dataset.act || '').split(':');
+        btn.addEventListener('click', async () => {
+          if (kind === 'status') {
+            await updateOrderStatus(o.id, { status: value });
+          } else if (kind === 'duplicate') {
+            const copy = { ...o,
+              id: U.uid(),
+              status: 'PLANNED',
+              time: o.time,
+              deliveryNoteNo: ''
+            };
+            await addOrUpdateOrder(copy);
+          } else if (kind === 'delete') {
+            await removeOrder(o.id);
+          } else if (kind === 'edit') {
+            openEditOrderModal(o.id);
+          } else if (kind === 'whatsapp') {
+            sendWhatsappMessage(o);
+          } else if (kind === 'driverLink') {
+            copyDriverPortalLink(o);
+          } else if (kind === 'view') {
+            openCustomerMapModal(o);
+          } else if (kind === 'deliveryNote') {
+            promptForDeliveryNote(o);
+          }
+        });
+      });
+      tbody.appendChild(tr);
+    }
+  }
+
+  /**
+   * Opens the new order modal pre-filled for editing an existing order.
+   * @param {string} orderId - The ID of the order to edit.
+   */
+  function openEditOrderModal(orderId) {
+    const order = state.orders.find(o => o.id === orderId);
+    if (!order) {
+      UI.toast('❌ הזמנה לא נמצאה לעריכה.', 'bg-red-500');
+      return;
+    }
+
+    // Fill form fields with existing order data
+    document.getElementById('orderId').value = order.id; // Set hidden ID field
+    document.getElementById('driver').value = order.driver;
+    document.getElementById('jobType').value = order.jobType;
+    document.getElementById('date').value = order.date;
+    document.getElementById('time').value = order.time;
+    document.getElementById('customer').value = order.customer;
+    document.getElementById('contact').value = order.contact || '';
+    document.getElementById('phone').value = order.phone || '';
+    document.getElementById('whatsapp').value = order.whatsapp || '';
+    document.getElementById('city').value = order.city;
+    document.getElementById('address').value = order.address;
+    document.getElementById('warehouse').value = order.warehouse;
+    document.getElementById('notes').value = order.notes || '';
+
+    enforceDriverType(); // Apply driver-job type restrictions
+    updateCalcTags(); // Recalculate ETA tags
+
+    document.getElementById('newOrderModal').querySelector('h3').textContent = '✏️ עריכת הזמנה';
+    UI.openModal('newOrderModal');
+  }
+
+  /**
+   * Prompts the user to enter a delivery note number and then attempts to archive the order.
+   * @param {object} order - The order object to archive.
+   */
+  async function promptForDeliveryNote(order) {
+    const noteNo = prompt(`הכנס מספר תעודת משלוח עבור הזמנה ${order.customer} (${order.id}):`);
+    if (!noteNo || noteNo.trim() === '') {
+      UI.toast('❌ לא הוזן מספר תעודת משלוח.', 'bg-yellow-500');
+      return;
+    }
+    try {
+      UI.toast('✉️ משייך מספר תעודה ומארכב...', 'bg-blue-500');
+      await api('assignDeliveryNote', {
+        id: order.id,
+        deliveryNoteNo: noteNo.trim()
+      });
+      await api('archiveOrder', {
+        id: order.id
+      }); // Archive after assigning note
+      state.orders = state.orders.filter(o => o.id !== order.id); // Remove locally
+      state.cache.orders = [...state.orders]; // Refresh cache
+      Storage.save();
+      UI.toast(`✅ הזמנה ${order.id} אושפעה עם תעודה ${noteNo}!`, 'bg-green-500');
+      renderAll();
+    } catch (error) {
+      UI.toast(`❌ נכשל שינוי / ארכוב: ${error.message}`, 'bg-red-500');
+    }
+  }
+
+  // ====== KPI & Charts Render ======
+  let byHourChart, byTypeChart;
+
+  /** Renders the Key Performance Indicators (KPIs). */
+  function renderKPIs() {
+    const today = listToday();
+    const tomorrow = listTomorrow();
+    const aliToday = today.filter(o => o.driver === 'ALI').length;
+    const hkToday = today.filter(o => o.driver === 'HIKMAT').length;
+
+    document.getElementById('kpiToday').textContent = today.length;
+    document.getElementById('kpiTomorrow').textContent = tomorrow.length;
+    document.getElementById('kpiAli').textContent = aliToday;
+    document.getElementById('kpiHikmat').textContent = hkToday;
+  }
+
+  /** Renders the charts (Orders by Hour, Orders by Type). */
+  function renderCharts() {
+    const ctx1 = document.getElementById('byHourChart');
+    const ctx2 = document.getElementById('byTypeChart');
+
+    // Orders by Hour Chart
+    const hourlyCounts = Array(DAY_END_MIN / 60 - DAY_START_MIN / 60 + 1).fill(0); // For 06:00-16:00
+    const hourlyLabels = [];
+    for (let h = DAY_START_MIN / 60; h <= DAY_END_MIN / 60; h++) {
+      hourlyLabels.push(`${h < 10 ? '0' : ''}${h}:00`);
+    }
+
+    for (const o of listToday()) {
+      const h = Number(o.time.split(':')[0]);
+      const idx = h - (DAY_START_MIN / 60);
+      if (idx >= 0 && idx < hourlyCounts.length) {
+        hourlyCounts[idx]++;
+      }
+    }
+
+    if (byHourChart) byHourChart.destroy();
+    byHourChart = new Chart(ctx1, {
+      type: 'bar',
+      data: {
+        labels: hourlyLabels,
+        datasets: [{
+          label: 'כמות הזמנות',
+          data: hourlyCounts,
+          backgroundColor: 'rgba(59, 130, 246, 0.7)',
+          borderColor: 'rgba(59, 130, 246, 1)',
+          borderWidth: 1,
+          borderRadius: 8,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display: false
+          }
+        },
+        scales: {
+          x: {
+            grid: {
+              display: false
+            }
+          },
+          y: {
+            beginAtZero: true,
+            ticks: {
+              precision: 0
+            },
+            grid: {
+              color: 'rgba(0,0,0,0.05)'
+            }
+          }
+        }
+      }
+    });
+
+    // Orders by Type Chart
+    const manualCount = listToday().filter(o => o.jobType === 'MANUAL').length;
+    const craneCount = listToday().filter(o => o.jobType === 'CRANE').length;
+    if (byTypeChart) byTypeChart.destroy();
+    byTypeChart = new Chart(ctx2, {
+      type: 'doughnut',
+      data: {
+        labels: ['פריקה ידנית', 'עבודת מנוף'],
+        datasets: [{
+          data: [manualCount, craneCount],
+          backgroundColor: [DRIVERS.ALI.color, DRIVERS.HIKMAT.color],
+          hoverOffset: 10,
+          borderWidth: 0,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'right',
+            labels: {
+              usePointStyle: true,
+              boxWidth: 8,
+            }
+          }
+        }
+      }
+    });
+  }
+
+  // ====== Morning Report ======
+  /** Builds and displays the morning report for tomorrow. */
+  async function buildMorningReport() {
+    try {
+      UI.toast('📊 מכין דו"ח בוקר...', 'bg-blue-500');
+      // Fetch report from Apps Script to leverage server-side logic and accurate data
+      const reportText = await api('morningReport', { date: U.tomorrowStr() });
+      document.getElementById('reportPreview').textContent = reportText;
+      document.getElementById('waReportLink').href = `https://wa.me/?text=${U.encode(reportText)}`;
+      UI.toast('✅ דו"ח בוקר מוכן!', 'bg-green-500');
+    } catch (error) {
+      UI.toast(`❌ נכשל יצירת דו"ח בוקר: ${error.message}`, 'bg-red-500');
+    }
+  }
+
+  // ====== Alerts for upcoming jobs ======
+  /**
+   * Displays an alert if an order is approaching soon.
+   * @param {object} order - The order object.
+   */
+  function maybeAlertSoon(order) {
+    const now = dayjs();
+    if (order.date !== U.todayStr()) return; // Only alert for today's orders
+    const t = dayjs(`${order.date} ${order.time}`);
+    const diff = t.diff(now, 'minute');
+
+    // Alert if 5-30 minutes before, and not already EN_ROUTE/DONE/PARTIAL
+    if (diff <= 30 && diff > 5 && ['PLANNED', 'LOADING', 'DELAYED'].includes(order.status)) {
+      const existingAlert = document.querySelector(`[data-alert-id="${order.id}"]`);
+      if (existingAlert) return; // Avoid duplicate alerts
+
+      const el = document.createElement('div');
+      el.className = 'glass border border-yellow-500 bg-yellow-500/20 text-yellow-800 rounded-2xl p-4 shadow-lg text-sm';
+      el.dataset.alertId = order.id; // Mark alert to prevent duplicates
+      el.innerHTML = `⚠️ תזכורת: הזמנה ל<b>${DRIVERS[order.driver].name}</b> עבור <b>${order.customer}</b> (${order.city}, ${order.address}) מתחילה בעוד ${diff} דקות בשעה ${order.time}.`;
+      document.getElementById('alertsStack').appendChild(el);
+      // Remove alert after a few minutes
+      setTimeout(() => {
+        el.style.opacity = '0';
+        el.style.transform = 'translateY(-10px)';
+        setTimeout(() => el.remove(), 500);
+      }, Math.min(diff * 60 * 1000, 5 * 60 * 1000)); // Remove after order starts or 5 mins, whichever is shorter
+    }
+  }
+  // Check for alerts every 2 minutes
+  setInterval(() => {
+    listToday().forEach(maybeAlertSoon);
+  }, 2 * 60 * 1000);
+
+  // ====== Autocomplete & Repeat Order Logic ======
+  let customerSearchTimeout;
+
+  /**
+   * Handles customer input for autocomplete (fuzzy search for repeat orders).
+   * @param {Event} e - The input event.
+   */
+  async function handleCustomerInput(e) {
+    clearTimeout(customerSearchTimeout);
+    const query = e.target.value.trim();
+    const suggestionsDiv = document.getElementById('customerSuggestions');
+    suggestionsDiv.innerHTML = '';
+    suggestionsDiv.classList.add('hidden');
+
+    if (query.length < 2) return;
+
+    customerSearchTimeout = setTimeout(async () => {
+      // Search from local state.orders for efficiency
+      const relevantOrders = state.orders.filter(o => dayjs().diff(dayjs(o.createdAt), 'month') < 6); // Last 6 months
+      const suggestions = U.fuzzySearch(relevantOrders, query, ['customer', 'address', 'city']);
+
+      if (suggestions.length > 0) {
+        suggestions.forEach(sug => {
+          const item = document.createElement('div');
+          item.className = 'p-2 cursor-pointer hover:bg-gray-100 text-gray-800 border-b border-gray-200 last:border-b-0';
+          item.textContent = `${sug.customer} - ${sug.city}, ${sug.address}`;
+          item.onclick = () => fillOrderFormWithSuggestion(sug);
+          suggestionsDiv.appendChild(item);
+        });
+        suggestionsDiv.classList.remove('hidden');
+        UI.toast('🔍 נמצאו הזמנות חוזרות!', 'bg-gray-700', 3000);
+      }
+    }, 300); // Debounce to prevent too many searches
+  }
+
+  /**
+   * Fills the order form with data from a selected suggestion.
+   * @param {object} suggestion - The order object to use for pre-filling.
+   */
+  function fillOrderFormWithSuggestion(suggestion) {
+    document.getElementById('customer').value = suggestion.customer;
+    document.getElementById('contact').value = suggestion.contact || '';
+    document.getElementById('phone').value = suggestion.phone || '';
+    document.getElementById('whatsapp').value = suggestion.whatsapp || '';
+    document.getElementById('city').value = suggestion.city;
+    document.getElementById('address').value = suggestion.address;
+    document.getElementById('warehouse').value = suggestion.warehouse;
+    document.getElementById('jobType').value = suggestion.jobType;
+    document.getElementById('notes').value = suggestion.notes || '';
+
+    // If driver type needs to be enforced based on job type
+    document.getElementById('driver').value = suggestion.driver;
+    enforceDriverType();
+    updateCalcTags(); // Recalculate ETA tags
+    document.getElementById('customerSuggestions').classList.add('hidden');
+    UI.toast('✅ פרטי הזמנה קודמים מולאו!', 'bg-green-500');
+  }
+
+  // ====== Waze Share Text Parsing & Action ======
+  /**
+   * Parses Waze share text or URL to extract address, ETA, and URL.
+   * @param {string} text - The Waze share string.
+   * @returns {object} - {address: {street, city}, eta: HH:mm, url: string}
+   */
+  function parseWazeShare(text) {
+    const addrRegex1 = /אני בדרך אל\s+([^,]+?)\s*,\s*([^,\n]+?)\s+עם\s+Waze/i;
+    const addrRegex2 = /אל\s+(.+?)\s+עם\s+Waze/i; // More generic fallback
+    const etaRegex = /אגיע בשעה\s*(\d{1,2}:\d{2})/i;
+    const urlRegex = /(https?:\/\/waze\.com\/[^\s]+)/i;
+
+    let address = null;
+    let eta = null;
+    let url = null;
+
+    const addrMatch1 = addrRegex1.exec(text);
+    if (addrMatch1) {
+      address = {
+        street: addrMatch1[1].trim(),
+        city: addrMatch1[2].trim()
+      };
+    } else {
+      const addrMatch2 = addrRegex2.exec(text);
+      if (addrMatch2) {
+        // Try to split the generic address into street and city
+        const parts = addrMatch2[1].split(',').map(p => p.trim());
+        if (parts.length > 1) {
+          address = {
+            street: parts[0],
+            city: parts[1]
+          };
+        } else {
+          address = {
+            street: parts[0],
+            city: ''
+          }; // Fallback, city might be missing or part of street
+        }
+      }
+    }
+
+    const etaMatch = etaRegex.exec(text);
+    if (etaMatch) eta = etaMatch[1];
+
+    const urlMatch = urlRegex.exec(text);
+    if (urlMatch) url = urlMatch[1];
+
+    return {
+      address,
+      eta,
+      url
+    };
+  }
+
+  /**
+   * Compares two addresses for fuzzy matching.
+   * @param {{street: string, city: string}} parsedAddr - Address from Waze text.
+   * @param {object} order - The order object with customer address.
+   * @returns {boolean} - True if addresses are a match.
+   */
+  function isSameAddress(parsedAddr, order) {
+    if (!parsedAddr || !order || !order.address || !order.city) return false;
+    const norm = s => (s || '').replace(/['"-]/g, '').replace(/\s+/g, '').toLowerCase(); // Normalize
+    
+    const orderStreetNorm = norm(order.address);
+    const orderCityNorm = norm(order.city);
+    const parsedStreetNorm = norm(parsedAddr.street);
+    const parsedCityNorm = norm(parsedAddr.city);
+
+    // Check if parts of parsed street/city are included in order street/city
+    const streetMatch = orderStreetNorm.includes(parsedStreetNorm) || parsedStreetNorm.includes(orderStreetNorm);
+    const cityMatch = orderCityNorm.includes(parsedCityNorm) || parsedCityNorm.includes(orderCityNorm);
+
+    // Allow a city from Waze to match if it's generally a "sub-region"
+    // e.g., "תל אביב" could match "תל אביב-יפו"
+    if (!cityMatch && parsedAddr.city && order.city) {
+        const fuzzyCityMatch = orderCityNorm.includes(parsedCityNorm) || parsedCityNorm.includes(orderCityNorm);
+        if (fuzzyCityMatch) {
+            return streetMatch;
+        }
+    }
+
+    return streetMatch && cityMatch;
+  }
+
+  /**
+   * Opens a modal to display a map for the customer's order.
+   * @param {object} order - The order object.
+   */
+  function openCustomerMapModal(order) {
+    const mapContent = document.getElementById('customerMapContent');
+    mapContent.innerHTML = '<p class="text-gray-500">טוען מפה...</p>'; // Loading state
+
+    document.getElementById('mapOrderId').textContent = order.id;
+    document.getElementById('mapCustomer').textContent = order.customer;
+    document.getElementById('mapAddress').textContent = `${order.address}, ${order.city}`;
+
+    let wazeEmbedHtml = '';
+    let wazeLink = '';
+    let mapText = '';
+
+    if (order.wazeShareUrl) {
+      wazeLink = order.wazeShareUrl;
+      mapText = order.wazeShareText || '';
+      // Waze embed directly into an iframe might be restricted, so we use Google Maps as fallback
+      // For Waze live tracking, it's usually a full page link.
+      // For general address, we can use Google Maps embed.
+      const encodedAddress = U.encode(`${order.address}, ${order.city}`);
+      wazeEmbedHtml = `<iframe src="https://maps.google.com/maps?q=${encodedAddress}&t=&z=13&ie=UTF8&iwloc=&output=embed" 
+        width="100%" height="100%" style="border:0;" allowfullscreen="" loading="lazy"></iframe>`;
+    } else {
+      // Default Google Maps embed for the address
+      const encodedAddress = U.encode(`${order.address}, ${order.city}`);
+      wazeEmbedHtml = `<iframe src="https://maps.google.com/maps?q=${encodedAddress}&t=&z=13&ie=UTF8&iwloc=&output=embed" 
+        width="100%" height="100%" style="border:0;" allowfullscreen="" loading="lazy"></iframe>`;
+      wazeLink = `https://waze.com/ul?q=${encodedAddress}`; // Generic Waze link
+    }
+    
+    mapContent.innerHTML = wazeEmbedHtml;
+    document.getElementById('mapWazeText').textContent = mapText;
+    document.getElementById('mapOpenWaze').href = wazeLink;
+    document.getElementById('mapSendWhatsapp').href = `https://wa.me/?text=${U.encode(buildEtaMessage(order))}`;
+
+    UI.openModal('customerMapModal');
+  }
+
+
+  // ====== Communication Functions ======
+  /**
+   * Builds a rich WhatsApp message for a customer based on order details.
+   * @param {object} order - The order object.
+   * @returns {string} - The formatted message.
+   */
+  function buildEtaMessage(order) {
+    const driverName = DRIVERS[order.driver].name;
+    let message = `שלום ${order.contact || order.customer},\n`;
+    message += `עדכון חשוב לגבי הזמנה #${order.id}:\n`;
+    message += `📍 כתובת: ${order.address}, ${order.city}\n`;
+    message += `🚛 הנהג ${driverName} `;
+
+    switch (order.status) {
+      case 'PLANNED':
+        message += `מתוכנן להגיע בשעה משוערת ${order.arriveHHMM}.\n`;
+        break;
+      case 'EN_ROUTE':
+        message += `יצא לדרך ויגיע בשעה משוערת ${order.arriveHHMM}.\n`;
+        if (order.wazeShareUrl) {
+          message += ` תוכל לעקוב אחר הנסיעה שלו כאן: ${order.wazeShareUrl}\n`;
+        }
+        break;
+      case 'LOADING':
+        message += `התחיל העמסה ויגיע לאחר מכן בשעה משוערת ${order.arriveHHMM}.\n`;
+        break;
+      case 'DELAYED':
+        message += `מעוכב ויגיע בשעה משוערת ${order.arriveHHMM}. אנו מתנצלים על העיכוב.\n`;
+        if (order.wazeShareUrl) {
+          message += ` תוכל לעקוב אחר הנסיעה שלו כאן: ${order.wazeShareUrl}\n`;
+        }
+        break;
+      case 'DONE':
+        message += `סיים את עבודתו. תודה שהשתמשת בשירותינו!\n`;
+        break;
+      case 'PARTIAL':
+        message += `סיפק חלקית את ההזמנה. נציג יצור קשר בקרוב.`;
+        break;
+    }
+    message += `\nלכל שאלה, ניתן לחזור אלינו. תודה!`;
+    return message;
+  }
+
+  /**
+   * Opens WhatsApp with a pre-filled message for the customer.
+   * @param {object} order - The order object.
+   */
+  function sendWhatsappMessage(order) {
+    if (!order.whatsapp && !order.phone) {
+      UI.toast('❌ אין מספר טלפון/וואטסאפ ללקוח.', 'bg-yellow-500');
+      return;
+    }
+    const message = buildEtaMessage(order);
+    const phoneNum = order.whatsapp || order.phone; // Prefer whatsapp number if available
+    window.open(`https://wa.me/${phoneNum}?text=${U.encode(message)}`, '_blank');
+  }
+
+  /**
+   * Copies the Driver Portal link for a specific order to the clipboard.
+   * @param {object} order - The order object.
+   */
+  function copyDriverPortalLink(order) {
+    const driverPortalBaseUrl = window.location.origin + '/driver.html'; // Assuming driver.html is at root
+    const link = `${driverPortalBaseUrl}?orderId=${order.id}&driver=${order.driver}`;
+    navigator.clipboard.writeText(link)
+      .then(() => UI.toast('🔗 קישור לפורטל נהג הועתק!'))
+      .catch(err => {
+        console.error('Failed to copy link:', err);
+        UI.toast('❌ נכשל העתקת הקישור.', 'bg-red-500');
+      });
+  }
+
+  // ====== Rendering Orchestration ======
+  /** Re-renders all UI components. */
+  function renderAll() {
+    renderKPIs();
+    renderCharts();
+    renderTimeline();
+    renderOrdersTable();
+    buildMorningReport(); // Rebuild report as orders might have changed
+    document.getElementById('workTimeRange').textContent = `${state.settings.workStart}-${state.settings.workEnd}`;
+  }
+
+  // ====== Form interactions ======
+  /** Updates the ETA calculation tags in the new order form based on current inputs. */
+  function updateCalcTags() {
+    const driver = document.getElementById('driver').value;
+    const jobType = document.getElementById('jobType').value;
+    const city = document.getElementById('city').value;
+    const time = document.getElementById('time').value || '09:00';
+    if (!city || !driver || !jobType) {
+      // Clear tags if essential info is missing
+      UI.tagUpdate({
+        km: '-',
+        travelMin: '-',
+        serviceMin: '-',
+        arriveHHMM: '--:--',
+        finishHHMM: '--:--'
+      });
+      return;
+    }
+    const data = calcETA({
+      driver,
+      jobType,
+      city,
+      startHHMM: time
+    });
+    UI.tagUpdate(data);
+  }
+
+  /** Enforces driver-job type rules (Ali: Manual, Hikmat: Crane). */
+  function enforceDriverType() {
+    const driver = document.getElementById('driver').value;
+    const jobTypeEl = document.getElementById('jobType');
+    const manualOption = jobTypeEl.querySelector('option[value="MANUAL"]');
+    const craneOption = jobTypeEl.querySelector('option[value="CRANE"]');
+
+    manualOption.disabled = false;
+    craneOption.disabled = false;
+
+    if (driver === 'ALI') {
+      jobTypeEl.value = 'MANUAL';
+      craneOption.disabled = true;
+    } else if (driver === 'HIKMAT') {
+      jobTypeEl.value = 'CRANE';
+      manualOption.disabled = true;
+    }
+    updateCalcTags(); // Recalculate ETA tags after enforcing type
+  }
+
+  /**
+   * Handles submission of the new order form.
+   * Creates or updates an order based on whether `orderId` is present.
+   * @param {Event} e - The form submit event.
+   */
+  async function onSubmitNewOrder(e) {
+    e.preventDefault();
+
+    const orderId = document.getElementById('orderId').value || null; // Check if editing existing order
+    const driver = document.getElementById('driver').value;
+    const jobType = document.getElementById('jobType').value;
+
+    // Business logic validation
+    if (driver === 'ALI' && jobType !== 'MANUAL') {
+      UI.toast('❌ עלי תומך רק בפריקה ידנית.', 'bg-red-500');
+      return;
+    }
+    if (driver === 'HIKMAT' && jobType !== 'CRANE') {
+      UI.toast('❌ חכמת מיועד לעבודות/הובלת מנוף.', 'bg-red-500');
+      return;
+    }
+
+    // Gather form data
+    const date = document.getElementById('date').value;
+    const time = document.getElementById('time').value || '09:00';
+    const customer = document.getElementById('customer').value.trim();
+    const contact = document.getElementById('contact').value.trim();
+    const phone = document.getElementById('phone').value.trim();
+    const whatsapp = document.getElementById('whatsapp').value.trim();
+    const city = document.getElementById('city').value.trim();
+    const address = document.getElementById('address').value.trim();
+    const warehouse = document.getElementById('warehouse').value;
+    const notes = document.getElementById('notes').value.trim();
+
+    // Calculate ETA
+    const {
+      km,
+      travelMin,
+      serviceMin,
+      arriveHHMM,
+      finishHHMM
+    } = calcETA({
+      driver,
+      jobType,
+      city,
+      startHHMM: time
+    });
+
+    const order = {
+      id: orderId || U.uid(), // Use existing ID or generate new
+      driver,
+      jobType,
+      date,
+      time,
+      customer,
+      contact,
+      phone,
+      whatsapp,
+      city,
+      address,
+      warehouse,
+      notes,
+      km,
+      travelMin: Math.round(travelMin),
+      serviceMin,
+      arriveHHMM,
+      finishHHMM,
+      status: orderId ? (state.orders.find(o => o.id === orderId)?.status || 'PLANNED') : 'PLANNED', // Keep status on edit
+      createdAt: orderId ? (state.orders.find(o => o.id === orderId)?.createdAt || new Date().toISOString()) : new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      wazeShareText: orderId ? (state.orders.find(o => o.id === orderId)?.wazeShareText || '') : '',
+      wazeShareUrl: orderId ? (state.orders.find(o => o.id === orderId)?.wazeShareUrl || '') : '',
+      deliveryNoteNo: orderId ? (state.orders.find(o => o.id === orderId)?.deliveryNoteNo || '') : '',
+    };
+
+    await addOrUpdateOrder(order); // Call unified add/update function
+    
+    UI.closeModal('newOrderModal');
+    e.target.reset();
+    document.getElementById('time').value = '09:00'; // Reset time to default
+    enforceDriverType(); // Reset driver type enforcement
+    document.getElementById('newOrderModal').querySelector('h3').textContent = '➕ הזמנה חדשה'; // Reset modal title
+  }
+
+  /**
+   * Suggests fitting within a shift and warns about overload.
+   * @param {string} driver - The driver ID.
+   * @param {string} dayStr - The date string.
+   */
+  function suggestFitWithinShift(driver, dayStr) {
+    const workStart = U.parseTimeToMinutes(state.settings.workStart);
+    const workEnd = U.parseTimeToMinutes(state.settings.workEnd);
+    const orders = listByDay(dayStr).filter(o => o.driver === driver);
+
+    if (!orders.length) return;
+
+    // Calculate cumulative finish time for driver
+    let lastFinishMin = workStart;
+    for (const order of orders) {
+        const orderStart = U.parseTimeToMinutes(order.time);
+        const orderFinish = U.parseTimeToMinutes(order.finishHHMM);
+        // Ensure jobs don't start before previous one finishes if they are sequential
+        lastFinishMin = Math.max(lastFinishMin, orderFinish);
+    }
+    
+    if (lastFinishMin > workEnd) {
+      UI.toast('⚠️ עומס יתר: שיבוץ הנהג חורג משעת הסיום (' + state.settings.workEnd + '). שקול דחייה למחר או העברת נהג.', 'bg-warning', 10000);
+    }
+  }
+
+  // ====== Cities Modal Logic ======
+  /** Opens the cities management modal. */
+  async function openCities() {
+    // Optionally sync cities from sheet on open for latest data
+    try {
+      // const sheetCities = await api('listCities', {});
+      // state.cities = Object.fromEntries(sheetCities.map(c => [c.city, c.distanceKmFromHodHasharon]));
+      // Storage.save();
+    } catch (error) {
+      console.warn("Failed to sync cities from sheet on open:", error);
+    }
+
+    const tbody = document.getElementById('citiesTbody');
+    tbody.innerHTML = '';
+    Object.entries(state.cities).sort((a, b) => a[0].localeCompare(b[0], 'he')).forEach(([city, km]) => {
+      const tr = document.createElement('tr');
+      tr.className = 'border-b border-gray-200 last:border-b-0';
+      tr.innerHTML = `<td class='p-3 text-gray-800'>${city}</td>
+                      <td class='p-3'><input type='number' value='${km}' class='px-2 py-1 rounded-lg glass border-gray-300 w-28 text-gray-800'></td>
+                      <td class='p-3 text-left'><button class='btn btn-danger text-xs remove'>🗑️ הסר</button></td>`;
+      tr.querySelector('.remove').onclick = () => {
+        delete state.cities[city];
+        tr.remove();
+        UI.toast(`העיר ${city} הוסרה זמנית. שמור לשינוי קבוע.`, 'bg-yellow-500', 4000);
+      };
+      tr.querySelector('input').onchange = (e) => {
+        state.cities[city] = Number(e.target.value || 0);
+        UI.toast(`המרחק ל${city} עודכן זמנית. שמור לשינוי קבוע.`, 'bg-blue-500', 4000);
+      };
+      tbody.appendChild(tr);
+    });
+    UI.openModal('citiesModal');
+  }
+
+  /** Adds a new city from the input fields in the cities modal. */
+  function addCity() {
+    const newCityName = document.getElementById('newCityName').value.trim();
+    const newCityDistance = Number(document.getElementById('newCityDistance').value);
+
+    if (!newCityName) {
+      UI.toast('❌ אנא הזן שם עיר.', 'bg-red-500');
+      return;
+    }
+    if (isNaN(newCityDistance) || newCityDistance < 0) {
+      UI.toast('❌ אנא הזן מרחק תקין (מספר חיובי).', 'bg-red-500');
+      return;
+    }
+    if (state.cities[newCityName]) {
+      UI.toast(`⚠️ העיר ${newCityName} כבר קיימת במאגר.`, 'bg-yellow-500');
+      return;
+    }
+
+    state.cities[newCityName] = newCityDistance;
+    document.getElementById('newCityName').value = '';
+    document.getElementById('newCityDistance').value = '';
+    UI.toast(`✅ העיר ${newCityName} נוספה זמנית למאגר.`, 'bg-green-500');
+    openCities(); // Re-render cities table in modal
+  }
+
+  /** Saves the updated cities list to local storage and Apps Script. */
+  async function saveCities() {
+    try {
+      UI.toast('💾 שומר מאגר ערים...', 'bg-blue-500');
+      // Convert state.cities object to an array of {city, distanceKmFromHodHasharon} for Apps Script
+      const citiesArray = Object.entries(state.cities).map(([city, km]) => ({
+        city,
+        distanceKmFromHodHasharon: km
+      }));
+      await api('saveCities', citiesArray); // Send to Apps Script
+      Storage.save();
+      initCityDatalist(); // Update datalist after saving
+      UI.toast('✅ מאגר ערים נשמר בהצלחה!', 'bg-green-500');
+      UI.closeModal('citiesModal');
+    } catch (error) {
+      UI.toast(`❌ נכשל שמירת מאגר ערים: ${error.message}`, 'bg-red-500');
+    }
+  }
+
+  // ====== Settings Modal Logic ======
+  /** Opens the settings modal and pre-fills fields. */
+  function openSettings() {
+    document.getElementById('appsScriptUrl').value = state.settings.appsScriptUrl || '';
+    document.getElementById('appsScriptToken').value = state.settings.appsScriptToken || ''; // Display token
+    document.getElementById('workStart').value = state.settings.workStart;
+    document.getElementById('workEnd').value = state.settings.workEnd;
+    document.getElementById('svcManual').value = state.settings.svcManual;
+    document.getElementById('svcCrane').value = state.settings.svcCrane;
+    document.getElementById('speedAli').value = state.settings.speedAli;
+    document.getElementById('speedHikmat').value = state.settings.speedHikmat;
+    UI.openModal('settingsModal');
+  }
+
+  /** Saves the updated settings to local storage and Apps Script. */
+  async function saveSettings() {
+    try {
+      UI.toast('💾 שומר הגדרות...', 'bg-blue-500');
+      const newSettings = {
+        appsScriptUrl: document.getElementById('appsScriptUrl').value.trim(),
+        appsScriptToken: document.getElementById('appsScriptToken').value.trim(),
+        workStart: document.getElementById('workStart').value,
+        workEnd: document.getElementById('workEnd').value,
+        svcManual: Number(document.getElementById('svcManual').value || 45),
+        svcCrane: Number(document.getElementById('svcCrane').value || 90),
+        speedAli: Number(document.getElementById('speedAli').value || 55),
+        speedHikmat: Number(document.getElementById('speedHikmat').value || 50),
+      };
+
+      // Update local state and persist
+      Object.assign(state.settings, newSettings);
+      Storage.save();
+      // Also send settings to Apps Script to store server-side (especially for AUTH_TOKEN)
+      await api('saveSettings', newSettings); 
+      UI.toast('✅ הגדרות נשמרו בהצלחה!', 'bg-green-500');
+      UI.closeModal('settingsModal');
+      renderAll(); // Re-render to apply new settings (e.g., work hours in timeline)
+    } catch (error) {
+      UI.toast(`❌ נכשל שמירת הגדרות: ${error.message}`, 'bg-red-500');
+    }
+  }
+
+  // ====== Morning Report Copy ======
+  /** Copies the generated morning report text to clipboard. */
+  function copyReport() {
+    const text = document.getElementById('reportPreview').textContent;
+    navigator.clipboard.writeText(text)
+      .then(() => UI.toast('📋 הדו"ח הועתק בהצלחה!'))
+      .catch(err => {
+        console.error('Failed to copy report:', err);
+        UI.toast('❌ נכשל העתקת הדו"ח.', 'bg-red-500');
+      });
+  }
+
+  // ====== Demo Seed ======
+  /** Seeds the system with sample data for demonstration purposes. */
+  async function seed() {
+    if (!confirm('האם אתה בטוח שברצונך לטעון נתוני הדגמה? זה ינקה את כל ההזמנות הקיימות.')) return;
+
+    UI.toast('✨ טוען נתוני הדגמה...', 'bg-blue-500');
+    state.orders = []; // Clear current orders
+    const baseToday = U.todayStr();
+    const baseTmr = U.tomorrowStr();
+    const samples = Defaults.sampleOrders(baseToday, baseTmr);
+
+    for (const s of samples) {
+      const {
+        km,
+        travelMin,
+        serviceMin,
+        arriveHHMM,
+        finishHHMM
+      } = calcETA({
+        driver: s.driver,
+        jobType: s.jobType,
+        city: s.city,
+        startHHMM: s.time
+      });
+      const order = {
+        ...s,
+        id: U.uid(),
+        km,
+        travelMin: Math.round(travelMin),
+        serviceMin,
+        arriveHHMM,
+        finishHHMM,
+        status: 'PLANNED',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      await addOrUpdateOrder(order); // Save to sheet and local
+    }
+    UI.toast('✅ נטענו נתוני הדגמה וסונכרנו לגיליון!', 'bg-green-500');
+    renderAll();
+  }
+
+  // ====== Initialization ======
+  function init() {
+    Storage.load(); // Load data from local storage
+    initCityDatalist(); // Populate city datalist
+    renderAll(); // Initial rendering of all components
+    syncOrdersFromSheet(); // Sync with Apps Script on load
+
+    // --- Event Listeners ---
+    document.getElementById('newOrderBtn').onclick = () => {
+      document.getElementById('orderId').value = ''; // Clear ID for new order
+      document.getElementById('date').value = U.todayStr();
+      document.getElementById('time').value = '09:00'; // Default time
+      document.getElementById('newOrderForm').reset(); // Clear form
+      enforceDriverType();
+      updateCalcTags();
+      document.getElementById('newOrderModal').querySelector('h3').textContent = '➕ הזמנה חדשה';
+      UI.openModal('newOrderModal');
+    };
+    document.getElementById('citiesBtn').onclick = openCities;
+    document.getElementById('settingsBtn').onclick = openSettings;
+    document.getElementById('calcBtn').onclick = updateCalcTags; // Manual ETA calculation button
+    document.getElementById('morningReportBtn').onclick = buildMorningReport;
+    document.getElementById('copyReportBtn').onclick = copyReport;
+    document.getElementById('addCityBtn').onclick = addCity;
+
+    // Form submissions
+    document.getElementById('newOrderForm').addEventListener('submit', onSubmitNewOrder);
+    document.getElementById('saveCitiesBtn').onclick = saveCities;
+    document.getElementById('saveSettingsBtn').onclick = saveSettings;
+
+    // Dynamic updates for ETA tags and driver type enforcement
+    ['driver', 'jobType', 'city', 'time', 'address'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.addEventListener('change', updateCalcTags);
+    });
+    document.getElementById('driver').addEventListener('change', enforceDriverType);
+    document.getElementById('customer').addEventListener('input', handleCustomerInput);
+
+    // Search and filter for orders table
+    document.getElementById('searchInput').addEventListener('input', renderOrdersTable);
+    document.getElementById('statusFilter').addEventListener('change', renderOrdersTable);
+
+    // Seed button for demo data
+    document.getElementById('seedBtn').onclick = seed;
+  }
+
+  document.addEventListener('DOMContentLoaded', init);
+  </script>
+</body>
+</html>
