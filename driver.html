@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="he">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Driver Portal</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <script>
+    const API_URL   = "<<YOUR_WEBAPP_URL>>"; 
+    const API_TOKEN = "<<YOUR_TOKEN>>"; 
+
+    async function api(action, payload){
+      const res = await fetch(API_URL, {
+        method:"POST",
+        headers:{"Content-Type":"application/json","X-CRM-TOKEN":API_TOKEN},
+        body: JSON.stringify({action,payload})
+      });
+      const data = await res.json();
+      if(!data.ok) throw new Error(data.error);
+      return data.data;
+    }
+
+    function getParam(n){ return new URLSearchParams(window.location.search).get(n); }
+
+    async function updateStatus(status){
+      const orderId = getParam("orderId");
+      const driver  = getParam("driver");
+      await api("updateStatus",{id:orderId,driver,status});
+      toast("✅ עודכן לסטטוס: "+status);
+    }
+
+    async function shareWaze(){
+      const orderId = getParam("orderId");
+      const txt = document.getElementById("wazeText").value;
+      await api("saveOrder",{id:orderId,wazeShareText:txt});
+      toast("📍 קישור Waze נשמר!");
+    }
+
+    function toast(msg){
+      const el=document.getElementById("toast");
+      el.innerText=msg;
+      el.classList.remove("hidden");
+      setTimeout(()=>el.classList.add("hidden"),3000);
+    }
+  </script>
+</head>
+<body class="bg-gray-100 flex items-center justify-center h-screen">
+  <div class="bg-white shadow-lg rounded-xl p-6 w-full max-w-md">
+    <h1 class="text-xl font-bold mb-4 text-center">Driver Portal 🚛</h1>
+
+    <div class="flex flex-col gap-3">
+      <button onclick="updateStatus('EN_ROUTE')" class="bg-blue-500 text-white py-2 rounded">🚦 יצאתי לדרך</button>
+      <button onclick="updateStatus('LOADING')" class="bg-yellow-500 text-white py-2 rounded">📦 התחלת העמסה</button>
+      <button onclick="updateStatus('DELIVERED')" class="bg-green-500 text-white py-2 rounded">✅ סופק מלא</button>
+      <button onclick="updateStatus('PARTIAL')" class="bg-purple-500 text-white py-2 rounded">⚠️ סופק חלקית</button>
+    </div>
+
+    <div class="mt-6">
+      <textarea id="wazeText" placeholder="הדבק כאן טקסט שיתוף נסיעה מ־Waze" class="w-full border p-2 rounded"></textarea>
+      <button onclick="shareWaze()" class="bg-indigo-500 text-white py-2 rounded w-full mt-2">💾 שמור Waze</button>
+    </div>
+  </div>
+
+  <div id="toast" class="fixed bottom-5 left-1/2 -translate-x-1/2 bg-black text-white px-4 py-2 rounded hidden"></div>
+</body>
+</html>
