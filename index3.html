@@ -115,28 +115,28 @@
           <div class="ms-auto text-sm text-white/60">חלון עבודה: 06:00–16:00</div>
         </div>
 
-        <!-- Time header -->
+        <!-- Time header - Container for generated ticks -->
         <div id="timeHeaderContainer" class="grid grid-cols-timeline gap-2 text-xs text-white/60">
           <div class=""></div>
-          <template id="timeHeaderTpl"></template>
+          <!-- Time ticks will be dynamically inserted here -->
         </div>
         
-        <!-- Ali lane -->
+        <!-- Ali lane - Container for generated ticks -->
         <div class="relative mt-2">
           <div id="gridTicksAliContainer" class="grid grid-cols-timeline gap-2">
             <div class="text-sm text-white/80 font-medium flex items-center gap-2">👨‍🔧 עלי</div>
-            <template id="gridTicksAli"></template>
+            <!-- Grid ticks will be dynamically inserted here -->
           </div>
           <div id="laneAli" class="relative h-16 mt-1 border border-white/10 rounded-2xl overflow-hidden glass">
             <!-- order blocks -->
           </div>
         </div>
         
-        <!-- Hikmat lane -->
+        <!-- Hikmat lane - Container for generated ticks -->
         <div class="relative mt-4">
           <div id="gridTicksHikmatContainer" class="grid grid-cols-timeline gap-2">
             <div class="text-sm text-white/80 font-medium flex items-center gap-2">🏗️ חכמת</div>
-            <template id="gridTicksHk"></template>
+            <!-- Grid ticks will be dynamically inserted here -->
           </div>
           <div id="laneHikmat" class="relative h-16 mt-1 border border-white/10 rounded-2xl overflow-hidden glass">
             <!-- order blocks -->
@@ -374,7 +374,11 @@
     </div>
   </div>
 
-  <!-- Templates -->
+  <!-- Templates (Moved here to ensure they are not cleared from DOM) -->
+  <template id="timeHeaderTpl"></template>
+  <template id="gridTicksAli"></template>
+  <template id="gridTicksHk"></template>
+
   <template id="orderRowTpl">
     <tr>
       <td class="p-2 font-mono"></td>
@@ -624,19 +628,26 @@ async function api(action, payload){
 
   /**
    * יוצר ומציג את תגי הזמן עבור ציר הזמן.
+   * הפונקציה מצפה שהתבניות יהיו מחוץ למיכלי התצוגה כדי למנוע מחיקה.
    * @param {string} templateId - ה-ID של תבנית האלמנט.
    * @param {string} containerId - ה-ID של המיכל שאליו יש להוסיף את האלמנטים.
    * @param {boolean} showTime - האם להציג את השעה (עבור כותרת הציר).
    */
   function renderTimeTicks(templateId, containerId, showTime = false) {
+    // אין צורך לשכפל את התבנית עצמה או להחליף אותה ב-DOM כאן,
+    // מכיוון שהיא מוגדרת כעת מחוץ למיכל התצוגה ונועדה להישאר קבועה.
+    // אנו רק משתמשים בה כדי לקבל את מבנה ה-tick.
     const tpl = document.getElementById(templateId);
-    // קלון את האלמנט כדי לאפס את תוכנו ולנקות מאזיני אירועים ישנים
-    const clonedTpl = tpl.cloneNode();
-    tpl.replaceWith(clonedTpl);
+    if (!tpl) {
+        console.error(`Error: Template with ID '${templateId}' not found.`);
+        return; // יציאה כדי למנוע שגיאת null
+    }
 
     const container = document.getElementById(containerId);
-    // ודא שהמיכל קיים לפני הוספת אלמנטים
-    if (!container) return;
+    if (!container) {
+        console.error(`Error: Container with ID '${containerId}' not found.`);
+        return; // יציאה כדי למנוע שגיאת null
+    }
 
     // נקה את תוכן המיכל לפני יצירה מחדש
     container.innerHTML = '';
@@ -813,10 +824,10 @@ async function api(action, payload){
   // ====== KPIs & Charts ======
   let byHourChart, byTypeChart;
   function renderKPIs(){
-    const today = listToday(); const tomorrow = listTomorrow();
+    const today = listToday(); const tomorrow = listToday(); // Changed tomorrow to today for correct KPI calculation
     const aliToday = today.filter(o=>o.driver==='ALI').length; const hkToday = today.filter(o=>o.driver==='HIKMAT').length;
     document.getElementById('kpiToday').textContent = today.length;
-    document.getElementById('kpiTomorrow').textContent = tomorrow.length;
+    document.getElementById('kpiTomorrow').textContent = listTomorrow().length; // Corrected to use listTomorrow for tomorrow's orders
     document.getElementById('kpiAli').textContent = aliToday; document.getElementById('kpiHikmat').textContent = hkToday;
   }
   function renderCharts(){
