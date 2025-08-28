@@ -1,889 +1,979 @@
-<!doctype html>
-<html lang="he" dir="rtl">
-<head>
-  <link rel="icon" href="/your/path/to/favicon.ico" type="image/x-icon">
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>CRM נהגים – עלי & חכמת | לוח סידור חכם</title>
-  <!-- Tailwind CSS -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          fontFamily: { sans: ["Rubik", "Arial", "ui-sans-serif", "system-ui"] },
-          boxShadow: {
-            glow: "0 0 0 1px rgba(255,255,255,0.06) inset, 0 0 40px rgba(59,130,246,0.35)",
-            neon: "0 0 8px rgba(59,130,246,.6), 0 0 24px rgba(59,130,246,.35)",
-          },
-          colors: {
-            ali: "#16a34a",
-            hikmat: "#0ea5e9",
-            crane: "#0ea5e9",
-            manual: "#16a34a",
-            warning: "#f59e0b",
-            danger: "#ef4444",
-            glass: "rgba(255,255,255,0.08)",
-            glass2: "rgba(255,255,255,0.12)",
-          }
-        }
-      }
-    }
-  </script>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;700&display=swap" rel="stylesheet">
-  <!-- Day.js & Plugins -->
-  <script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/dayjs@1/plugin/customParseFormat.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/dayjs@1/plugin/isoWeek.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/dayjs@1/plugin/relativeTime.js"></script>
-  <script>dayjs.extend(dayjs_plugin_customParseFormat); dayjs.extend(dayjs_plugin_isoWeek); dayjs.extend(dayjs_plugin_relativeTime);</script>
-  <!-- Chart.js for simple charts -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-  <style>
-    html, body { background: #0b1220; color: #e5e7eb; }
-    .glass { background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.04)); backdrop-filter: blur(6px); }
-    .tag { @apply text-xs px-2 py-0.5 rounded-full bg-white/10 border border-white/10; }
-    .btn { @apply inline-flex items-center justify-center gap-2 px-3 py-2 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/10 transition; }
-    .btn-primary { @apply bg-blue-500/80 hover:bg-blue-500 text-white shadow-neon; }
-    .btn-danger { @apply bg-red-500/80 hover:bg-red-500 text-white; }
-    .btn-success { @apply bg-emerald-500/80 hover:bg-emerald-500 text-white; }
-    .btn-warning { @apply bg-amber-500/80 hover:bg-amber-500 text-white; }
-    .kpi { @apply glass rounded-3xl p-4 border border-white/10 shadow; }
-    .grid-cols-timeline { grid-template-columns: 56px repeat(20, minmax(0,1fr)); } /* 06:00–16:00 = 10h -> 20 slots of 30min */
-    .tick::after { content: ""; position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: rgba(255,255,255,.06); }
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import dayjs from 'dayjs';
+import customParseFormat from 'dayjs/plugin/customParseFormat';
+import isoWeek from 'dayjs/plugin/isoWeek';
+import relativeTime from 'dayjs/plugin/relativeTime';
 
-    .order-block { position: absolute; top: 2px; height: calc(100% - 4px); border-radius: 14px; cursor: grab; user-select: none; }
-    .order-block.dragging { opacity: .85; outline: 2px dashed rgba(255,255,255,.35); cursor: grabbing; }
+dayjs.extend(customParseFormat);
+dayjs.extend(isoWeek);
+dayjs.extend(relativeTime);
 
-    /* Neon alert pulse */
-    @keyframes pulseNeon { 0%{ box-shadow: 0 0 0 0 rgba(245, 158, 11,.7);} 70%{ box-shadow: 0 0 0 20px rgba(245,158,11,0);} 100%{ box-shadow: 0 0 0 0 rgba(245,158,11,0);} }
-    .neon-alert { animation: pulseNeon 2s infinite; }
-
-    /* Fancy modal */
-    .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.5); display: none; align-items: center; justify-content: center; z-index: 50; }
-    .modal-backdrop.show { display: flex; }
-
-    .rtl-input::placeholder{ text-align: right; }
-  </style>
-</head>
-<body class="font-sans">
-  <div class="max-w-[1400px] mx-auto px-4 py-6">
-    <!-- Header -->
-    <header class="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
-      <div>
-        <h1 class="text-2xl md:text-3xl font-bold">🚚 CRM נהגים – עלי & חכמת</h1>
-        <p class="text-white/60">לוח סידור חכם, חישובי מרחקים ו־ETA, התראות, וגרפים – מותאם לנייד</p>
-      </div>
-      <div class="flex items-center gap-2">
-        <button id="seedBtn" class="btn btn-success">טעינת הדגמת נתונים</button>
-        <button id="newOrderBtn" class="btn btn-primary">➕ הזמנה חדשה</button>
-        <button id="morningReportBtn" class="btn">📨 יצירת דו"ח בוקר</button>
-        <button id="citiesBtn" class="btn">🏙️ מאגר ערים</button>
-        <button id="settingsBtn" class="btn">⚙️ הגדרות</button>
-      </div>
-    </header>
-
-    <!-- KPIs -->
-    <section class="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4">
-      <div class="kpi"><div class="text-white/60 text-sm">הזמנות היום</div><div id="kpiToday" class="text-2xl font-bold">0</div></div>
-      <div class="kpi"><div class="text-white/60 text-sm">הזמנות מחר</div><div id="kpiTomorrow" class="text-2xl font-bold">0</div></div>
-      <div class="kpi"><div class="text-white/60 text-sm">עלי – היום</div><div id="kpiAli" class="text-2xl font-bold text-manual">0</div></div>
-      <div class="kpi"><div class="text-white/60 text-sm">חכמת – היום</div><div id="kpiHikmat" class="text-2xl font-bold text-crane">0</div></div>
-    </section>
-
-    <!-- Charts -->
-    <section class="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-      <div class="kpi md:col-span-2">
-        <div class="flex items-center justify-between mb-2"><h3 class="font-semibold">פילוח לפי שעות (היום)</h3><span class="tag">06:00–16:00</span></div>
-        <canvas id="byHourChart" height="110"></canvas>
-      </div>
-      <div class="kpi">
-        <div class="flex items-center justify-between mb-2"><h3 class="font-semibold">חלוקה לפי סוג</h3><span class="tag">פריקה ידנית / עבודת מנוף</span></div>
-        <canvas id="byTypeChart" height="110"></canvas>
-      </div>
-    </section>
-
-    <!-- Timelines -->
-    <section class="mt-8 grid grid-cols-1 gap-6">
-      <h2 class="text-xl font-bold">ציר זמן – היום</h2>
-
-      <div class="glass rounded-3xl p-4 border border-white/10">
-        <div class="flex items-center gap-3 mb-3">
-          <div class="flex items-center gap-2"><div class="w-3 h-3 rounded-full bg-manual"></div><span class="text-sm">עלי – פריקה ידנית (איסוזו 5T)</span></div>
-          <div class="flex items-center gap-2"><div class="w-3 h-3 rounded-full bg-crane"></div><span class="text-sm">חכמת – הובלת/עבודת מנוף (מרצדס 12T)</span></div>
-          <div class="ms-auto text-sm text-white/60">חלון עבודה: 06:00–16:00</div>
-        </div>
-
-        <!-- Time header -->
-        <div class="grid grid-cols-timeline gap-2 text-xs text-white/60">
-          <div class=""></div>
-          <!-- 06:00..16:00 in 30min ticks -->
-          <template id="timeHeaderTpl"></template>
-        </div>
-        
-        <!-- Ali lane -->
-        <div class="relative mt-2">
-          <div class="grid grid-cols-timeline gap-2">
-            <div class="text-sm text-white/80 font-medium flex items-center gap-2">👨‍🔧 עלי</div>
-            <template id="gridTicksAli"></template>
-          </div>
-          <div id="laneAli" class="relative h-16 mt-1 border border-white/10 rounded-2xl overflow-hidden glass">
-            <!-- order blocks -->
-          </div>
-        </div>
-        
-        <!-- Hikmat lane -->
-        <div class="relative mt-4">
-          <div class="grid grid-cols-timeline gap-2">
-            <div class="text-sm text-white/80 font-medium flex items-center gap-2">🏗️ חכמת</div>
-            <template id="gridTicksHk"></template>
-          </div>
-          <div id="laneHikmat" class="relative h-16 mt-1 border border-white/10 rounded-2xl overflow-hidden glass">
-            <!-- order blocks -->
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Orders Table (today) -->
-    <section class="mt-8">
-      <div class="flex items-center justify-between mb-3">
-        <h2 class="text-xl font-bold">הזמנות – היום</h2>
-        <div class="flex gap-2">
-          <input id="searchInput" class="px-3 py-2 rounded-2xl bg-white/10 border border-white/10 w-64 rtl-input" placeholder="חיפוש: לקוח / כתובת / עיר / סטטוס" />
-          <select id="statusFilter" class="px-3 py-2 rounded-2xl bg-white/10 border border-white/10">
-            <option value="">כל הסטטוסים</option>
-            <option value="PLANNED">מתוכנן</option>
-            <option value="EN_ROUTE">בדרך</option>
-            <option value="LOADING">העמסה</option>
-            <option value="DELAYED">עיכוב</option>
-            <option value="DONE">סופק</option>
-            <option value="PARTIAL">סופק חלקית</option>
-          </select>
-        </div>
-      </div>
-      <div class="overflow-x-auto rounded-2xl border border-white/10">
-        <table class="min-w-full text-sm">
-          <thead class="bg-white/5">
-            <tr>
-              <th class="p-3 text-right">שעה</th>
-              <th class="p-3 text-right">נהג</th>
-              <th class="p-3 text-right">לקוח</th>
-              <th class="p-3 text-right">עיר</th>
-              <th class="p-3 text-right">כתובת</th>
-              <th class="p-3 text-right">מחסן</th>
-              <th class="p-3 text-right">סוג</th>
-              <th class="p-3 text-right">מרחק</th>
-              <th class="p-3 text-right">ETA</th>
-              <th class="p-3 text-right">סטטוס</th>
-              <th class="p-3 text-right">פעולות</th>
-            </tr>
-          </thead>
-          <tbody id="ordersTodayTbody" class="divide-y divide-white/10"></tbody>
-        </table>
-      </div>
-    </section>
-
-    <!-- Morning Report Preview -->
-    <section class="mt-8">
-      <div class="kpi">
-        <div class="flex items-center justify-between">
-          <h2 class="text-xl font-bold">תצוגה מקדימה – דו"ח בוקר למחר</h2>
-          <div class="flex gap-2">
-            <button id="copyReportBtn" class="btn">📋 העתקה</button>
-            <a id="waReportLink" href="#" target="_blank" class="btn">🟢 WhatsApp</a>
-          </div>
-        </div>
-        <pre id="reportPreview" class="mt-3 whitespace-pre-wrap text-sm bg-black/30 p-3 rounded-2xl border border-white/10"></pre>
-      </div>
-    </section>
-
-    <!-- City DB + Settings quick access -->
-    <section class="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4">
-      <div class="kpi">
-        <h3 class="font-semibold mb-2">חיזוי זמן הגעה (ETA) – ממוצעים מהיסטוריה</h3>
-        <p class="text-white/60 text-sm">המערכת מחשבת זמני שירות ממוצעים לכל כתובת/עיר לפי היסטוריית הזמנות. ניתן לעדכן ידנית בהגדרות.</p>
-        <div id="etaInsights" class="mt-2 text-sm"></div>
-      </div>
-      <div class="kpi">
-        <h3 class="font-semibold mb-2">עיבוד מרחקים – מאגר ערים (סטטי ניתן לעריכה)</h3>
-        <p class="text-white/60 text-sm">חישובי מרחק מבוססים על מאגר פנימי (בקירוב) מ־"הוד השרון". לשיפור דיוק – חברו ל־Google Maps Distance Matrix API.</p>
-      </div>
-    </section>
-
-  </div>
-
-  <!-- Floating Upcoming Alerts -->
-  <div id="alertsStack" class="fixed bottom-4 right-4 z-50 flex flex-col gap-3"></div>
-
-  <!-- Modal: New Order -->
-  <div id="newOrderModal" class="modal-backdrop">
-    <div class="glass w-[min(900px,95vw)] rounded-3xl p-6 border border-white/10 shadow-glow">
-      <div class="flex items-center justify-between mb-4">
-        <h3 class="text-xl font-bold">➕ הזמנה חדשה</h3>
-        <button onclick="UI.closeModal('newOrderModal')" class="btn">✖</button>
-      </div>
-      <form id="newOrderForm" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label class="block text-sm text-white/60 mb-1">נהג *</label>
-          <select id="driver" required class="w-full px-3 py-2 rounded-2xl bg-white/10 border border-white/10">
-            <option value="ALI">עלי – פריקה ידנית (5T)</option>
-            <option value="HIKMAT">חכמת – עבודת מנוף/הובלת מנוף (12T)</option>
-          </select>
-        </div>
-        <div>
-          <label class="block text-sm text-white/60 mb-1">סוג הובלה *</label>
-          <select id="jobType" required class="w-full px-3 py-2 rounded-2xl bg-white/10 border border-white/10">
-            <option value="MANUAL">פריקה ידנית</option>
-            <option value="CRANE">עבודת מנוף / הובלת מנוף</option>
-          </select>
-        </div>
-        <div>
-          <label class="block text-sm text-white/60 mb-1">תאריך אספקה *</label>
-          <input id="date" type="date" required class="w-full px-3 py-2 rounded-2xl bg-white/10 border border-white/10" />
-        </div>
-        <div>
-          <label class="block text-sm text-white/60 mb-1">שעת אספקה (ניתן לגרור בציר הזמן)</label>
-          <input id="time" type="time" value="09:00" class="w-full px-3 py-2 rounded-2xl bg-white/10 border border-white/10" />
-        </div>
-        <div>
-          <label class="block text-sm text-white/60 mb-1">לקוח *</label>
-          <input id="customer" required placeholder="שם לקוח" class="w-full px-3 py-2 rounded-2xl bg-white/10 border border-white/10 rtl-input" />
-        </div>
-        <div>
-          <label class="block text-sm text-white/60 mb-1">טלפון</label>
-          <input id="phone" placeholder="05x-xxxxxxx" class="w-full px-3 py-2 rounded-2xl bg-white/10 border border-white/10 rtl-input" />
-        </div>
-        <div>
-          <label class="block text-sm text-white/60 mb-1">עיר *</label>
-          <input id="city" list="cityList" required placeholder="בחר עיר" class="w-full px-3 py-2 rounded-2xl bg-white/10 border border-white/10 rtl-input" />
-          <datalist id="cityList"></datalist>
-        </div>
-        <div>
-          <label class="block text-sm text-white/60 mb-1">כתובת</label>
-          <input id="address" placeholder="רחוב ומספר" class="w-full px-3 py-2 rounded-2xl bg-white/10 border border-white/10 rtl-input" />
-        </div>
-        <div>
-          <label class="block text-sm text-white/60 mb-1">מחסן העמסה *</label>
-          <select id="warehouse" class="w-full px-3 py-2 rounded-2xl bg-white/10 border border-white/10">
-            <option value="HARASH">מחסן החרש (4) – החרש 10, הוד השרון</option>
-            <option value="TALMID">מחסן התלמיד (1) – התלמיד 6, הוד השרון</option>
-          </select>
-        </div>
-        <div>
-          <label class="block text-sm text-white/60 mb-1">הערות</label>
-          <input id="notes" placeholder="פרטים חשובים, גישה, קומה, זמן אתר..." class="w-full px-3 py-2 rounded-2xl bg-white/10 border border-white/10 rtl-input" />
-        </div>
-
-        <div class="md:col-span-2 glass rounded-2xl p-3 border border-white/10">
-          <div class="flex flex-wrap items-center gap-3 text-sm">
-            <span class="tag">📍 בסיס: הוד השרון</span>
-            <span id="calcDistanceTag" class="tag">🔎 מרחק: –</span>
-            <span id="calcTravelTag" class="tag">🕒 נסיעה: –</span>
-            <span id="calcServiceTag" class="tag">🔧 שירות: –</span>
-            <span id="calcEtaTag" class="tag">⏱️ הגעה משוערת: –</span>
-            <span id="calcFinishTag" class="tag">✅ סיום משוער: –</span>
-          </div>
-        </div>
-
-        <div class="md:col-span-2 flex flex-wrap items-center gap-2 justify-between">
-          <div class="text-white/60 text-xs">* זמני ברירת המחדל: פריקה ידנית ~45 ד׳, עבודת מנוף ~90 ד׳. מהירות משוערת: 55 קמ"ש עלי / 50 קמ"ש חכמת.</div>
-          <div class="flex items-center gap-2">
-            <button type="button" id="calcBtn" class="btn">🔢 חשב ETA</button>
-            <button type="submit" class="btn btn-primary">💾 שמירה</button>
-          </div>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <!-- Modal: Cities DB -->
-  <div id="citiesModal" class="modal-backdrop">
-    <div class="glass w-[min(900px,95vw)] rounded-3xl p-6 border border-white/10 shadow-glow">
-      <div class="flex items-center justify-between mb-4">
-        <h3 class="text-xl font-bold">🏙️ מאגר ערים ומרחקים (מהוד השרון)</h3>
-        <button onclick="UI.closeModal('citiesModal')" class="btn">✖</button>
-      </div>
-      <div class="text-sm text-white/70 mb-3">המרחקים מקורבים לשימוש פנימי. ניתן לערוך ולשמור בדפדפן. לשיפור דיוק – חברו ל־Google Maps Distance Matrix API.</div>
-      <div class="max-h-[50vh] overflow-auto border border-white/10 rounded-2xl">
-        <table class="min-w-full text-sm">
-          <thead class="bg-white/5 sticky top-0"><tr><th class="p-2 text-right">עיר</th><th class="p-2 text-right">מרחק (ק"מ)</th><th class="p-2"></th></tr></thead>
-          <tbody id="citiesTbody" class="divide-y divide-white/10"></tbody>
-        </table>
-      </div>
-      <div class="mt-3 flex items-center gap-2 justify-end">
-        <button id="saveCitiesBtn" class="btn btn-success">שמירת שינויים</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Modal: Settings -->
-  <div id="settingsModal" class="modal-backdrop">
-    <div class="glass w-[min(720px,95vw)] rounded-3xl p-6 border border-white/10">
-      <div class="flex items-center justify-between mb-4">
-        <h3 class="text-xl font-bold">⚙️ הגדרות מערכת</h3>
-        <button onclick="UI.closeModal('settingsModal')" class="btn">✖</button>
-      </div>
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-        <div>
-          <label class="block text-sm text-white/60 mb-1">כתובת Apps Script (Webhook)</label>
-          <input id="appsScriptUrl" placeholder="הדבק כאן את ה-URL מ-GAS" class="w-full px-3 py-2 rounded-2xl bg-white/10 border border-white/10" />
-          <div class="text-xs text-white/50 mt-1">שימוש: קריאה/כתיבה ל-Google Sheets, שליחת דוחות.</div>
-        </div>
-        <div>
-          <label class="block text-sm text-white/60 mb-1">שעות עבודה (התחלה)</label>
-          <input id="workStart" type="time" value="06:00" class="w-full px-3 py-2 rounded-2xl bg-white/10 border border-white/10" />
-        </div>
-        <div>
-          <label class="block text-sm text-white/60 mb-1">שעות עבודה (סיום)</label>
-          <input id="workEnd" type="time" value="16:00" class="w-full px-3 py-2 rounded-2xl bg-white/10 border border-white/10" />
-        </div>
-        <div>
-          <label class="block text-sm text-white/60 mb-1">משך שירות ברירת מחדל – פריקה ידנית (דקות)</label>
-          <input id="svcManual" type="number" value="45" class="w-full px-3 py-2 rounded-2xl bg-white/10 border border-white/10" />
-        </div>
-        <div>
-          <label class="block text-sm text-white/60 mb-1">משך שירות ברירת מחדל – עבודת מנוף (דקות)</label>
-          <input id="svcCrane" type="number" value="90" class="w-full px-3 py-2 rounded-2xl bg-white/10 border border-white/10" />
-        </div>
-        <div>
-          <label class="block text-sm text-white/60 mb-1">מהירות ממוצעת – עלי (קמ"ש)</label>
-          <input id="speedAli" type="number" value="55" class="w-full px-3 py-2 rounded-2xl bg-white/10 border border-white/10" />
-        </div>
-        <div>
-          <label class="block text-sm text-white/60 mb-1">מהירות ממוצעת – חכמת (קמ"ש)</label>
-          <input id="speedHikmat" type="number" value="50" class="w-full px-3 py-2 rounded-2xl bg-white/10 border border-white/10" />
-        </div>
-      </div>
-      <div class="mt-4 flex justify-end gap-2">
-        <button id="saveSettingsBtn" class="btn btn-success">שמירה</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Templates -->
-  <template id="orderRowTpl">
-    <tr>
-      <td class="p-2 font-mono"></td>
-      <td class="p-2"></td>
-      <td class="p-2"></td>
-      <td class="p-2"></td>
-      <td class="p-2"></td>
-      <td class="p-2"></td>
-      <td class="p-2"></td>
-      <td class="p-2"></td>
-      <td class="p-2"></td>
-      <td class="p-2"></td>
-      <td class="p-2">
-        <div class="flex gap-1 flex-wrap">
-          <button class="btn text-xs" data-act="status:EN_ROUTE">🚚 בדרך</button>
-          <button class="btn text-xs" data-act="status:LOADING">📦 העמסה</button>
-          <button class="btn text-xs" data-act="status:DELAYED">⏳ עיכוב</button>
-          <button class="btn text-xs" data-act="status:DONE">✅ סופק</button>
-          <button class="btn text-xs" data-act="status:PARTIAL">🟡 סופק חלקית</button>
-          <button class="btn text-xs" data-act="duplicate">📄 שכפול</button>
-          <button class="btn text-xs btn-danger" data-act="delete">🗑️ מחיקה</button>
-        </div>
-      </td>
-    </tr>
-  </template>
-
-  <script>
-      const API_URL   = "https://script.google.com/macros/s/AKfycbzeBkksUNhwEuyVaQHaIDsnSGWAVtKp5RU6r95dDrqd21gRY_s1esytzxEBWDvxhjMfYQ/exec";
-      const API_TOKEN = "12345ABC";
+// IMPORTANT: Tailwind CSS configuration and global styles must be included in your main HTML file.
+// Please add the Tailwind CSS script, configuration (inside a <script> tag),
+// and global styles (inside a <style> tag) to your HTML <head> section.
+// Refer to previous versions or Tailwind CSS documentation for the exact configurations.
 
 
-async function api(action, payload){
-  const res = await fetch(API_URL, {
-    method: 'POST',
-    headers: {'Content-Type':'application/json','X-CRM-TOKEN':API_TOKEN},
-    body: JSON.stringify({action, payload})
-  });
-  const data = await res.json();
-  if(!data.ok) throw new Error(data.error || 'API error');
-  return data.data;
-}
+// --- Constants and Utility Functions ---
+const SHEET_ID = 'YOUR_GOOGLE_SHEET_ID_HERE'; // Replace with your actual Google Sheet ID
+const API_URL = "https://script.google.com/macros/s/AKfycbzeBkksUNhwEuyVaQHaIDsnSGWAVtKp5RU6r95dDrqd21gRY_s1esytzxEBWDvxhjMfYQ/exec"; // Example Apps Script URL
+const API_TOKEN = "12345ABC"; // Example API Token
 
-  // ====== State & Constants ======
-  const STORE_KEY = 'crm_orders_v1';
-  const CITIES_KEY = 'crm_cities_v1';
-  const SETTINGS_KEY = 'crm_settings_v1';
+const DRIVERS_INFO = {
+  'עלי': {
+    id: 'ALI',
+    name: 'עלי',
+    slogan: 'מומחה בהובלות קטנות',
+    image: 'https://i.postimg.cc/tCNbgXK3/Screenshot-20250623-200744-Tik-Tok.jpg',
+    jobType: 'MANUAL', // Default job type for Ali
+    color: 'manual', // Tailwind class prefix for colors (Green)
+    speed: 55, // km/h
+    vehicle: 'איסוזו 5T'
+  },
+  'חכמת': {
+    id: 'HIKMAT',
+    name: 'חכמת',
+    slogan: 'הובלות מנוף מורכבות',
+    image: 'https://i.postimg.cc/d3S0NJJZ/Screenshot-20250623-200646-Facebook.jpg',
+    jobType: 'CRANE', // Default job type for Hikmat
+    color: 'crane', // Tailwind class prefix for colors (Blue)
+    speed: 50, // km/h
+    vehicle: 'מרצדס 12T'
+  }
+};
 
-  const DRIVERS = {
-    ALI: { id: 'ALI', name: 'עלי', type: 'MANUAL', color: '#16a34a', speedKey: 'speedAli' },
-    HIKMAT: { id: 'HIKMAT', name: 'חכמת', type: 'CRANE', color: '#0ea5e9', speedKey: 'speedHikmat' },
-  };
+const JOB_TYPES = {
+    MANUAL: { label: 'פריקה ידנית', svcDefaultMin: 45 },
+    CRANE: { label: 'עבודת מנוף / הובלת מנוף', svcDefaultMin: 90 },
+};
 
-  const JOB_TYPES = {
-    MANUAL: { label: 'פריקה ידנית', svcKey: 'svcManual' },
-    CRANE: { label: 'עבודת מנוף / הובלת מנוף', svcKey: 'svcCrane' },
-  };
+// Consolidated unique status values (Hebrew strings)
+const STATUSES = [
+  'מתכונן ליציאה',
+  'בדרך',
+  'העמסה',
+  'נדחה למועד אחר',
+  'סופק',
+  'סופק חלקית',
+  'מוכנה',
+  'בטיפול',
+  'בוטל',
+];
 
-  const WAREHOUSES = {
+const WAREHOUSES = {
     HARASH: { code: 4, label: 'מחסן החרש (4) – החרש 10, הוד השרון' },
     TALMID: { code: 1, label: 'מחסן התלמיד (1) – התלמיד 6, הוד השרון' },
-  };
+};
 
-  const STATUSES = {
-    PLANNED: 'מתוכנן', EN_ROUTE: 'בדרך', LOADING: 'העמסה', DELAYED: 'עיכוב', DONE: 'סופק', PARTIAL: 'סופק חלקית'
-  };
+const DEFAULT_CITIES = { // Default city distances from Hod Hasharon (km)
+  'הוד השרון': 0, 'רעננה': 5, 'כפר סבא': 6, 'הרצליה': 9, 'תל אביב-יפו': 18, 'פתח תקווה': 10, 'נתניה': 25, 'מודיעין-מכבים-רעות': 35, 'חיפה': 85,
+};
 
-  let state = {
-    orders: [],
-    cities: {},
-    settings: {
-      appsScriptUrl: '',
-      workStart: '06:00',
-      workEnd: '16:00',
-      svcManual: 45,
-      svcCrane: 90,
-      speedAli: 55,
-      speedHikmat: 50,
-    }
-  };
+// Global state for cities, could be fetched from API or stored in localStorage
+let appState = {
+  cities: DEFAULT_CITIES
+};
 
-  // ====== Utilities ======
-  const U = {
-    uid: () => Math.random().toString(36).slice(2),
-    fmtTime: (m) => dayjs().startOf('day').add(m, 'minute').format('HH:mm'),
-    parseTimeToMinutes: (hhmm) => {
-      const [h, m] = hhmm.split(':').map(Number); return h*60 + m;
-    },
-    clamp: (v, min, max) => Math.min(Math.max(v, min), max),
-    km: (n) => `${Number(n).toFixed(0)} ק"מ`,
-    min: (n) => `${Number(n).toFixed(0)} ד׳`,
-    round: (n, r=5) => Math.round(n/r)*r,
-    todayStr: () => dayjs().format('YYYY-MM-DD'),
-    tomorrowStr: () => dayjs().add(1,'day').format('YYYY-MM-DD'),
-    encode: (str) => encodeURIComponent(str || ''),
-  };
+const U = {
+  uid: () => Math.random().toString(36).slice(2),
+  fmtTime: (m) => dayjs().startOf('day').add(m, 'minute').format('HH:mm'),
+  parseTimeToMinutes: (hhmm) => {
+    const [h, m] = hhmm.split(':').map(Number); return h*60 + m;
+  },
+  clamp: (v, min, max) => Math.min(Math.max(v, min), max),
+  km: (n) => `${Number(n).toFixed(0)} ק"מ`,
+  min: (n) => `${Number(n).toFixed(0)} ד׳`,
+  todayStr: () => dayjs().format('YYYY-MM-DD'),
+  tomorrowStr: () => dayjs().add(1,'day').format('YYYY-MM-DD'),
+  encode: (str) => encodeURIComponent(str || ''),
+};
 
-  // ====== Storage ======
-  const Storage = {
-    load(){
-      state.orders = JSON.parse(localStorage.getItem(STORE_KEY) || '[]');
-      state.cities = JSON.parse(localStorage.getItem(CITIES_KEY) || 'null') || Defaults.cities();
-      state.settings = Object.assign(state.settings, JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}'));
-    },
-    save(){
-      localStorage.setItem(STORE_KEY, JSON.stringify(state.orders));
-      localStorage.setItem(CITIES_KEY, JSON.stringify(state.cities));
-      localStorage.setItem(SETTINGS_KEY, JSON.stringify(state.settings));
-    }
-  }
-
-  // ====== Defaults (Cities) ======
-  const Defaults = {
-    cities(){
-      return {
-        'הוד השרון': 0,
-        'רעננה': 5,
-        'כפר סבא': 6,
-        'הרצליה': 9,
-        'אבן יהודה': 14,
-        'בית יהושע': 18,
-        'רמת גן': 15,
-        'גבעתיים': 16,
-        'תל אביב-יפו': 18,
-        'בני ברק': 18,
-        'פתח תקווה': 10,
-        'קריית אונו': 14,
-        'יהוד-מונוסון': 18,
-        'אור יהודה': 17,
-        'ראש העין': 16,
-        'רמת השרון': 8,
-        'נתניה': 25,
-        'כפר יונה': 22,
-        'טירה': 12,
-        'טייבה': 17,
-        'חדרה': 38,
-        'פרדס חנה-כרכור': 35,
-        'בנימינה-גבעת עדה': 42,
-        'זכרון יעקב': 50,
-        'עתלית': 68,
-        'חיפה': 85,
-        'קרית אתא': 92,
-        'יקנעם עילית': 70,
-        'עפולה': 95,
-        'נוף הגליל': 105,
-        'טבריה': 135,
-        'כרמיאל': 125,
-        'ראש פינה': 150,
-        'רחובות': 45,
-        'נס ציונה': 40,
-        'מודיעין-מכבים-רעות': 35,
-        'לוד': 26,
-        'רמלה': 30,
-        'חולון': 25,
-        'בת ים': 27,
-        'ראשון לציון': 30,
-      };
-    }
-  }
-
-  function initCityDatalist(){
-    const dl = document.getElementById('cityList'); dl.innerHTML = '';
-    Object.keys(state.cities).sort((a,b)=>a.localeCompare(b,'he')).forEach(city=>{
-      const opt = document.createElement('option'); opt.value = city; dl.appendChild(opt);
-    })
-  }
-
-  // ====== Distance & ETA ======
-  function distanceKm(city){ return state.cities[city] ?? null; }
-  function speedFor(driverId){ return Number(state.settings[DRIVERS[driverId].speedKey] || 50); }
-  function svcFor(jobType){ return Number(state.settings[JOB_TYPES[jobType].svcKey] || 60); }
-
-  function calcETA({driver, jobType, city, startHHMM}){
-    const km = distanceKm(city) ?? 0;
-    const spd = speedFor(driver);
-    const travelMin = km / spd * 60;
-    const serviceMin = svcFor(jobType);
-    const startMin = U.parseTimeToMinutes(startHHMM || '09:00');
-    const arriveHHMM = U.fmtTime(startMin + travelMin);
-    const finishHHMM = U.fmtTime(startMin + travelMin + serviceMin);
-    return { km, travelMin, serviceMin, arriveHHMM, finishHHMM };
-  }
-
-  // ====== UI Helpers ======
-  const UI = {
-    qs: (sel, el=document) => el.querySelector(sel),
-    qsa: (sel, el=document) => Array.from(el.querySelectorAll(sel)),
-    openModal: (id)=> document.getElementById(id).classList.add('show'),
-    closeModal: (id)=> document.getElementById(id).classList.remove('show'),
-
-    tagUpdate({km, travelMin, serviceMin, arriveHHMM, finishHHMM}){
-      document.getElementById('calcDistanceTag').textContent = `🔎 מרחק: ${U.km(km)}`;
-      document.getElementById('calcTravelTag').textContent = `🕒 נסיעה: ${U.min(travelMin)}`;
-      document.getElementById('calcServiceTag').textContent = `🔧 שירות: ${U.min(serviceMin)}`;
-      document.getElementById('calcEtaTag').textContent = `⏱️ הגעה משוערת: ${arriveHHMM}`;
-      document.getElementById('calcFinishTag').textContent = `✅ סיום משוער: ${finishHHMM}`;
-    },
-
-    toast(msg, cls=''){
-      const el = document.createElement('div');
-      el.className = `glass border border-white/10 rounded-2xl p-3 shadow-neon ${cls}`;
-      el.textContent = msg;
-      const stack = document.getElementById('alertsStack');
-      stack.appendChild(el); setTimeout(()=>{ el.remove(); }, 5000);
-    }
-  };
-
-  // ====== Orders Logic ======
-  function addOrder(order){ state.orders.push(order); Storage.save(); renderAll(); maybeAlertSoon(order); }
-  function removeOrder(id){ state.orders = state.orders.filter(o=>o.id!==id); Storage.save(); renderAll(); }
-  function updateOrder(id, patch){ const o = state.orders.find(x=>x.id===id); if(!o) return; Object.assign(o, patch, {updatedAt: Date.now()}); Storage.save(); renderAll(); }
-
-  function listByDay(dayStr){ return state.orders.filter(o=>o.date === dayStr).sort((a,b)=> U.parseTimeToMinutes(a.time)-U.parseTimeToMinutes(b.time)); }
-  function listToday(){ return listByDay(U.todayStr()); }
-  function listTomorrow(){ return listByDay(U.tomorrowStr()); }
-
-  // ====== Timeline Render & Drag ======
-  const DAY_START_MIN = 6*60, DAY_END_MIN = 16*60, DAY_TOTAL_MIN = (10*60);
-
-  function minutesToLeft(min){ return (min - DAY_START_MIN) / DAY_TOTAL_MIN; }
-
-  function renderTimeline(){
-    // headers ticks each 30 min
-    const headerTpl = document.getElementById('timeHeaderTpl'); headerTpl.replaceWith(headerTpl.cloneNode());
-    const header = document.getElementById('timeHeaderTpl');
-    for(let m=DAY_START_MIN; m<=DAY_END_MIN; m+=30){
-      const d = document.createElement('div'); d.className = 'relative text-center';
-      d.innerHTML = `<div class='tick absolute inset-0'></div><div class='relative z-10'>${U.fmtTime(m)}</div>`;
-      header.parentElement.appendChild(d);
-    }
-    // grid ticks (background)
-    ['gridTicksAli','gridTicksHk'].forEach(id=>{
-      const tpl = document.getElementById(id); tpl.replaceWith(tpl.cloneNode());
-      const cont = document.getElementById(id);
-      for(let m=DAY_START_MIN; m<=DAY_END_MIN; m+=30){ const d=document.createElement('div'); d.className='h-3 relative'; d.innerHTML='<div class="tick absolute inset-0"></div>'; cont.parentElement.appendChild(d); }
-    })
-
-    const lanes = { ALI: document.getElementById('laneAli'), HIKMAT: document.getElementById('laneHikmat') };
-    Object.values(lanes).forEach(l=> l.innerHTML='');
-    const today = listToday();
-    for(const o of today){
-      const lane = lanes[o.driver]; if(!lane) continue;
-      const startMin = U.parseTimeToMinutes(o.time); const wMin = Math.max(o.travelMin + o.serviceMin, 45);
-      const leftPct = minutesToLeft(startMin) * 100;
-      const widthPct = (wMin / DAY_TOTAL_MIN) * 100;
-      const color = o.jobType==='CRANE' ? 'bg-crane/80' : 'bg-manual/80';
-      const el = document.createElement('div');
-      el.className = `order-block ${color} border border-white/10 shadow hover:shadow-neon`;
-      el.style.left = `calc(${leftPct}% + 2px)`; el.style.width = `calc(${widthPct}% - 4px)`;
-      el.dataset.id = o.id;
-      el.innerHTML = `<div class='p-2 text-xs leading-4'>
-        <div class='font-semibold'>${o.customer} · ${o.city}</div>
-        <div class='opacity-80'>${o.time} → ETA ${o.arriveHHMM} · סיום ${o.finishHHMM}</div>
-        <div class='opacity-70'>${STATUSES[o.status] || 'מתוכנן'}</div>
-      </div>`;
-
-      enableDrag(el, lane);
-      lane.appendChild(el);
-    }
-  }
-
-  function enableDrag(el, lane){
-    let startX, origLeft, isDown=false, id = el.dataset.id;
-    const onDown = (e)=>{ isDown=true; el.classList.add('dragging'); startX=(e.touches?e.touches[0].clientX:e.clientX); origLeft=el.offsetLeft; e.preventDefault(); };
-    const onMove = (e)=>{
-      if(!isDown) return; const x=(e.touches?e.touches[0].clientX:e.clientX); const dx=x-startX; const newLeft=origLeft+dx;
-      const maxLeft = lane.clientWidth - el.clientWidth - 4; el.style.left = `${U.clamp(newLeft, 2, maxLeft)}px`;
-    };
-    const onUp = ()=>{
-      if(!isDown) return; isDown=false; el.classList.remove('dragging');
-      const left = el.offsetLeft; const pct = left / lane.clientWidth; const min = Math.round((pct * DAY_TOTAL_MIN + DAY_START_MIN)/15)*15; // snap 15m
-      const hhmm = U.fmtTime(min);
-      updateOrder(id, { time: hhmm });
-      UI.toast(`⏱️ עדכון שעה: ${hhmm}`);
-    };
-    el.addEventListener('mousedown', onDown); el.addEventListener('touchstart', onDown);
-    window.addEventListener('mousemove', onMove, {passive:false}); window.addEventListener('touchmove', onMove, {passive:false});
-    window.addEventListener('mouseup', onUp); window.addEventListener('touchend', onUp);
-  }
-
-  // ====== Table Render ======
-  function renderOrdersTable(){
-    const tbody = document.getElementById('ordersTodayTbody'); tbody.innerHTML='';
-    let rows = listToday();
-    const query = document.getElementById('searchInput').value?.trim();
-    const statusF = document.getElementById('statusFilter').value;
-    if(query){ rows = rows.filter(o=> [o.customer,o.city,o.address,STATUSES[o.status]].join(' ').includes(query)); }
-    if(statusF){ rows = rows.filter(o=> o.status===statusF); }
-
-    for(const o of rows){
-      const tr = document.getElementById('orderRowTpl').content.firstElementChild.cloneNode(true);
-      const [tdTime, tdDrv, tdCust, tdCity, tdAddr, tdWh, tdType, tdDist, tdETA, tdStatus, tdActions] = tr.children;
-      tdTime.textContent = o.time; tdDrv.textContent = (o.driver==='ALI'?'עלי':'חכמת'); tdCust.textContent = o.customer; tdCity.textContent=o.city; tdAddr.textContent=o.address||'';
-      tdWh.textContent = o.warehouse==='HARASH'?'החרש (4)':'התלמיד (1)'; tdType.textContent = JOB_TYPES[o.jobType].label;
-      tdDist.textContent = `${U.km(o.km)} / ${U.min(o.travelMin)}`; tdETA.textContent = `${o.arriveHHMM} → ${o.finishHHMM}`;
-      tdStatus.innerHTML = `<span class='tag'>${STATUSES[o.status]}</span>`;
-
-      tdActions.querySelectorAll('button').forEach(btn=>{
-        const [kind, value] = (btn.dataset.act||'').split(':');
-        btn.addEventListener('click', ()=>{
-          if(kind==='status'){ updateOrder(o.id, { status: value }); }
-          else if(kind==='duplicate'){ const copy = {...o, id: U.uid(), status:'PLANNED', time: o.time}; addOrder(copy); }
-          else if(kind==='delete'){ if(confirm('למחוק הזמנה?')) removeOrder(o.id); }
-        });
-      });
-      tbody.appendChild(tr);
-    }
-  }
-
-  // ====== KPIs & Charts ======
-  let byHourChart, byTypeChart;
-  function renderKPIs(){
-    const today = listToday(); const tomorrow = listTomorrow();
-    const aliToday = today.filter(o=>o.driver==='ALI').length; const hkToday = today.filter(o=>o.driver==='HIKMAT').length;
-    document.getElementById('kpiToday').textContent = today.length;
-    document.getElementById('kpiTomorrow').textContent = tomorrow.length;
-    document.getElementById('kpiAli').textContent = aliToday; document.getElementById('kpiHikmat').textContent = hkToday;
-  }
-  function renderCharts(){
-    const ctx1 = document.getElementById('byHourChart'); const ctx2 = document.getElementById('byTypeChart');
-    const buckets = Array(11).fill(0); // 06..16 -> 11 ticks (per hour start)
-    for(const o of listToday()){ const h = Number(o.time.split(':')[0]); const idx = Math.max(0, Math.min(10, h-6)); buckets[idx]++; }
-    if(byHourChart) byHourChart.destroy(); byHourChart = new Chart(ctx1, { type: 'bar', data:{ labels: ['06','07','08','09','10','11','12','13','14','15','16'], datasets:[{ label:'כמות הזמנות', data:buckets }]}, options:{ plugins:{legend:{display:false}}, scales:{ y:{ beginAtZero:true }}} });
-
-    const man = listToday().filter(o=>o.jobType==='MANUAL').length; const crn = listToday().filter(o=>o.jobType==='CRANE').length;
-    if(byTypeChart) byTypeChart.destroy(); byTypeChart = new Chart(ctx2, { type:'doughnut', data:{ labels:['פריקה ידנית','עבודת מנוף'], datasets:[{ data:[man,crn] }]}, options:{} });
-  }
-
-  // ====== Morning Report ======
-  function buildMorningReport(){
-    const tmr = listTomorrow();
-    const ali = tmr.filter(o=>o.driver==='ALI'); const hk = tmr.filter(o=>o.driver==='HIKMAT');
-    const warehouses = { HARASH: 'החרש', TALMID: 'התלמיד' };
-    const whCounts = { HARASH:0, TALMID:0 };
-    tmr.forEach(o=> whCounts[o.warehouse]++);
-
-    const cnt06to09 = tmr.filter(o=>{ const m=U.parseTimeToMinutes(o.time); return m>=360 && m<540; }).length;
-    const head = `סיכום הזמנות\n🚚 עלי: ${ali.length} הזמנות\n🚛 חכמת: ${hk.length} הזמנות\n📦 סה\"כ מחסן: ${tmr.length} הזמנות\n🏫 מחסן התלמיד: ${whCounts.TALMID} הזמנות\n🔨 מחסן החרש: ${whCounts.HARASH} הזמנות\n☀️ הזמנות 06:00-09:00: ${cnt06to09} הזמנות\n\n--------------------\nדוחות בוקר מפורטים\n`;
-
-    const secAli = ali.map(o=> `\n📝 עלי - דוח בוקר\n📅 ${o.date} ⏰ ${o.time} 🏠 ${warehouses[o.warehouse]} 📄 מתכונן ליציאה\n👤 ${o.customer} 📍 ${o.city}${o.address?(' – '+o.address):''}\n-----`).join('\n');
-    const secHk = hk.map(o=> `\n📝 חכמת - דוח בוקר\n📅 ${o.date} ⏰ ${o.time} 🏠 ${warehouses[o.warehouse]} 📄 מתכונן ליציאה\n👤 ${o.customer} 📍 ${o.city}${o.address?(' – '+o.address):''}\n-----`).join('\n');
-
-    const text = `${head}${secAli}\n${secHk}\n🔗 https://did.li/berOf`;
-    document.getElementById('reportPreview').textContent = text;
-    document.getElementById('waReportLink').href = `https://wa.me/?text=${U.encode(text)}`;
-  }
-
-  // ====== Alerts for upcoming jobs ======
-  function maybeAlertSoon(order){
-    const now = dayjs();
-    if(order.date !== U.todayStr()) return; // only today
-    const t = dayjs(`${order.date} ${order.time}`);
-    const diff = t.diff(now, 'minute');
-    if(diff <= 30 && diff > 0){
-      const el = document.createElement('div');
-      el.className = 'glass border border-warning/40 neon-alert rounded-2xl p-4';
-      el.innerHTML = `⚠️ תזכורת: הזמנה ל${order.driver==='ALI'?'עלי':'חכמת'} עבור <b>${order.customer}</b> (${order.city}) בעוד ${diff} ד׳`;
-      document.getElementById('alertsStack').appendChild(el);
-      setTimeout(()=> el.remove(), 30000);
-    }
-  }
-  setInterval(()=>{ listToday().forEach(maybeAlertSoon); }, 120000);
-
-  // ====== Rendering Orchestration ======
-  function renderAll(){ renderTimeline(); renderOrdersTable(); renderKPIs(); renderCharts(); buildMorningReport(); }
-
-  // ====== Form interactions ======
-  function updateCalcTags(){
-    const driver = document.getElementById('driver').value;
-    const jobType = document.getElementById('jobType').value;
-    const city = document.getElementById('city').value;
-    const time = document.getElementById('time').value || '09:00';
-    if(!city) return;
-    const data = calcETA({driver, jobType, city, startHHMM: time});
-    UI.tagUpdate(data);
-  }
-
-  function enforceDriverType(){
-    const driver = document.getElementById('driver').value;
-    const jobTypeEl = document.getElementById('jobType');
-    if(driver==='ALI'){ jobTypeEl.value = 'MANUAL'; jobTypeEl.querySelector('option[value="CRANE"]').disabled = true; }
-    else { jobTypeEl.value = 'CRANE'; jobTypeEl.querySelector('option[value="CRANE"]').disabled = false; }
-    updateCalcTags();
-  }
-
-  // ====== Save order ======
-  function onSubmitNewOrder(e){ e.preventDefault();
-    const driver = document.getElementById('driver').value;
-    const jobType = document.getElementById('jobType').value;
-    if(driver==='ALI' && jobType!=='MANUAL'){ UI.toast('❌ עלי תומך רק בפריקה ידנית', 'border-danger'); return; }
-    if(driver==='HIKMAT' && jobType!=='CRANE'){ UI.toast('❌ חכמת מיועד לעבודות/הובלת מנוף', 'border-danger'); return; }
-
-    const date = document.getElementById('date').value;
-    const time = document.getElementById('time').value || '09:00';
-    const customer = document.getElementById('customer').value.trim();
-    const phone = document.getElementById('phone').value.trim();
-    const city = document.getElementById('city').value.trim();
-    const address = document.getElementById('address').value.trim();
-    const warehouse = document.getElementById('warehouse').value;
-    const notes = document.getElementById('notes').value.trim();
-
-    const { km, travelMin, serviceMin, arriveHHMM, finishHHMM } = calcETA({driver, jobType, city, startHHMM: time});
-
-    const order = {
-      id: U.uid(), driver, jobType, date, time, customer, phone, city, address, warehouse, notes,
-      km, travelMin: Math.round(travelMin), serviceMin, arriveHHMM, finishHHMM,
-      status: 'PLANNED', createdAt: Date.now(), updatedAt: Date.now()
-    };
-
-    addOrder(order);
-    suggestFitWithinShift(driver, date);
-    UI.closeModal('newOrderModal');
-    e.target.reset(); document.getElementById('time').value = '09:00'; enforceDriverType();
-  }
-
-  function suggestFitWithinShift(driver, dayStr){
-    const workStart = U.parseTimeToMinutes(state.settings.workStart);
-    const workEnd = U.parseTimeToMinutes(state.settings.workEnd);
-    const orders = listByDay(dayStr).filter(o=>o.driver===driver);
-    if(!orders.length) return;
-    const last = orders[orders.length-1];
-    const finish = U.parseTimeToMinutes(last.finishHHMM);
-    if(finish > workEnd){
-      UI.toast('⚠️ עומס יתר: השיבוץ חורג משעת הסיום. שקול דחייה למחר או העברת נהג.', 'border-warning');
-    }
-  }
-
-  // ====== Cities Modal ======
-  function openCities(){
-    const tbody = document.getElementById('citiesTbody'); tbody.innerHTML='';
-    Object.entries(state.cities).sort((a,b)=> a[0].localeCompare(b[0],'he')).forEach(([city,km])=>{
-      const tr = document.createElement('tr');
-      tr.innerHTML = `<td class='p-2'>${city}</td><td class='p-2'><input type='number' value='${km}' class='px-2 py-1 rounded bg-white/10 border border-white/10 w-28'></td><td class='p-2 text-right'><button class='btn btn-danger text-xs remove'>הסר</button></td>`;
-      tr.querySelector('.remove').onclick = ()=>{ delete state.cities[city]; tr.remove(); };
-      tr.querySelector('input').onchange = (e)=>{ state.cities[city] = Number(e.target.value||0); };
-      tbody.appendChild(tr);
+// --- API Communication (Adapted from index (21).html) ---
+async function callApi(action, payload) {
+  try {
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CRM-TOKEN': API_TOKEN },
+      body: JSON.stringify({ action, payload })
     });
-    UI.openModal('citiesModal');
-  }
-
-  // ====== Settings Modal ======
-  function openSettings(){
-    document.getElementById('appsScriptUrl').value = state.settings.appsScriptUrl || 'https://script.google.com/macros/s/AKfycbzTYUPZP-wqCp2gZ6PGEJR18XGTpjbX3U8pfRrRjFHvDNx4m9vo1nCVYI92Ic0-dJgHOA/exec';
-    document.getElementById('workStart').value = state.settings.workStart;
-    document.getElementById('workEnd').value = state.settings.workEnd;
-    document.getElementById('svcManual').value = state.settings.svcManual;
-    document.getElementById('svcCrane').value = state.settings.svcCrane;
-    document.getElementById('speedAli').value = state.settings.speedAli;
-    document.getElementById('speedHikmat').value = state.settings.speedHikmat;
-    UI.openModal('settingsModal');
-  }
-
-  // ====== Morning Report Copy ======
-  function copyReport(){
-    const text = document.getElementById('reportPreview').textContent; navigator.clipboard.writeText(text);
-    UI.toast('הדו"ח הועתק ✅');
-  }
-
-  // ====== Demo Seed ======
-  function seed(){
-    // Clear & add sample orders for today & tomorrow
-    state.orders = [];
-    const baseToday = U.todayStr(); const baseTmr = U.tomorrowStr();
-    const samples = [
-      {driver:'ALI', jobType:'MANUAL', date: baseToday, time:'08:00', customer:'אגם נכסים', phone:'', city:'הוד השרון', address:'החרש 10', warehouse:'HARASH', notes:''},
-      {driver:'HIKMAT', jobType:'CRANE', date: baseToday, time:'10:00', customer:'שני אילתי', phone:'', city:'מודיעין-מכבים-רעות', address:'', warehouse:'HARASH', notes:''},
-      {driver:'HIKMAT', jobType:'CRANE', date: baseToday, time:'12:00', customer:'תמר וולדורף', phone:'', city:'הוד השרון', address:'ויצמן 1', warehouse:'TALMID', notes:''},
-      {driver:'ALI', jobType:'MANUAL', date: baseTmr, time:'06:30', customer:'אגם נכסים', phone:'', city:'הוד השרון', address:'החרש 10', warehouse:'HARASH', notes:''},
-      {driver:'HIKMAT', jobType:'CRANE', date: baseTmr, time:'07:00', customer:'מידן לירן', phone:'', city:'הוד השרון', address:'', warehouse:'HARASH', notes:''},
-      {driver:'HIKMAT', jobType:'CRANE', date: baseTmr, time:'10:00', customer:'תלתן', phone:'', city:'הוד השרון', address:'', warehouse:'TALMID', notes:''},
-    ];
-    for(const s of samples){ const {km, travelMin, serviceMin, arriveHHMM, finishHHMM} = calcETA({driver:s.driver, jobType:s.jobType, city:s.city, startHHMM:s.time});
-      state.orders.push({...s, id:U.uid(), km, travelMin:Math.round(travelMin), serviceMin, arriveHHMM, finishHHMM, status:'PLANNED', createdAt:Date.now(), updatedAt:Date.now()});
+    const data = await response.json();
+    if (!data.ok) {
+      throw new Error(data.error || 'API error');
     }
-    Storage.save(); renderAll(); UI.toast('נטענו נתוני הדגמה');
+    return data.data;
+  } catch (error) {
+    console.error('API call failed:', error);
+    // In a real app, you'd show a user-friendly error message
+    return null;
+  }
+}
+
+// Function to fetch data from Google Sheets directly (adapted from index (22).html)
+async function fetchOrdersFromSheet() {
+  if (!SHEET_ID || SHEET_ID === 'YOUR_GOOGLE_SHEET_ID_HERE') {
+    console.warn("Please update SHEET_ID with your actual Google Sheet ID.");
+    // Return sample data if SHEET_ID is not set for demo purposes
+    return [
+      { id: U.uid(), driverName: 'עלי', date: U.todayStr(), time: '08:00', warehouse: 'HARASH', status: 'מתכונן ליציאה', customerName: 'אגם נכסים', address: 'החרש 10', city: 'הוד השרון', orderType: 'פריקה ידנית', jobType: 'MANUAL', km: 0, travelMin: 0, serviceMin: JOB_TYPES.MANUAL.svcDefaultMin, arriveHHMM: '08:00', finishHHMM: '08:45' },
+      { id: U.uid(), driverName: 'חכמת', date: U.todayStr(), time: '10:00', warehouse: 'TALMID', status: 'בדרך', customerName: 'שני אילתי', address: 'מודיעין', city: 'מודיעין-מכבים-רעות', orderType: 'הובלת מנוף', jobType: 'CRANE', km: 35, travelMin: (35/DRIVERS_INFO['חכמת'].speed)*60, serviceMin: JOB_TYPES.CRANE.svcDefaultMin, arriveHHMM: '10:42', finishHHMM: '12:12' },
+      { id: U.uid(), driverName: 'עלי', date: U.todayStr(), time: '12:00', warehouse: 'HARASH', status: 'סופק', customerName: 'תמר וולדורף', address: 'ויצמן 1', city: 'הוד השרון', orderType: 'פריקה ידנית', jobType: 'MANUAL', km: 0, travelMin: 0, serviceMin: JOB_TYPES.MANUAL.svcDefaultMin, arriveHHMM: '12:00', finishHHMM: '12:45' },
+      { id: U.uid(), driverName: 'חכמת', date: U.tomorrowStr(), time: '07:00', warehouse: 'HARASH', status: 'מתכונן ליציאה', customerName: 'מידן לירן', address: 'הוד השרון', city: 'הוד השרון', orderType: 'עבודת מנוף', jobType: 'CRANE', km: 0, travelMin: 0, serviceMin: JOB_TYPES.CRANE.svcDefaultMin, arriveHHMM: '07:00', finishHHMM: '08:30' },
+    ];
   }
 
-  // ====== AppScript (stubs) ======
-  async function syncToSheet(action, payload){
-    const url = state.settings.appsScriptUrl?.trim(); if(!url){ return; }
-    try{
-      await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action, payload }) });
-    }catch(e){ console.warn('Apps Script sync failed', e); }
+  const sheetUrl = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json`;
+  try {
+    const response = await fetch(sheetUrl);
+    const text = await response.text();
+    const json = JSON.parse(text.substring(47, text.length - 2));
+    const rows = json.table.rows.map(row => row.c.map(cell => cell ? cell.v : ''));
+
+    // Assuming the header row is the first row
+    const headers = rows[0];
+    const data = rows.slice(1).map(row => {
+      const order = {};
+      headers.forEach((header, index) => {
+        let key = '';
+        switch(header) { // Map Hebrew headers to English keys
+          case 'שם נהג': key = 'driverName'; break;
+          case 'תאריך': key = 'date'; break;
+          case 'שעה': key = 'time'; break;
+          case 'מחסן': key = 'warehouse'; break;
+          case 'סטטוס': key = 'status'; break;
+          case 'שם לקוח': key = 'customerName'; break;
+          case 'כתובת אספקה': key = 'address'; break;
+          case 'עיר': key = 'city'; break;
+          case 'סוג פעולה': key = 'orderType'; break;
+          case 'סוג עבודה': key = 'jobType'; break;
+          default: key = header.toLowerCase().replace(/\s/g, ''); // Generic conversion for any other columns
+        }
+        order[key] = row[index];
+      });
+
+      if (!order.jobType) {
+        order.jobType = order.orderType && order.orderType.includes('מנוף') ? 'CRANE' : 'MANUAL';
+      }
+
+      const driver = DRIVERS_INFO[order.driverName]?.id;
+      if (driver && order.city && order.time && order.jobType) {
+        const etaData = calcETA({
+          driver,
+          jobType: order.jobType,
+          city: order.city,
+          startHHMM: order.time
+        });
+        Object.assign(order, etaData);
+      } else {
+        order.km = order.km || 0;
+        order.travelMin = order.travelMin || 0;
+        order.serviceMin = order.serviceMin || (order.jobType === 'CRANE' ? JOB_TYPES.CRANE.svcDefaultMin : JOB_TYPES.MANUAL.svcDefaultMin);
+        order.arriveHHMM = order.arriveHHMM || order.time;
+        order.finishHHMM = order.finishHHMM || U.fmtTime(U.parseTimeToMinutes(order.time) + order.serviceMin);
+      }
+
+      order.id = U.uid();
+      return order;
+    });
+    return data;
+  } catch (error) {
+    console.error('Failed to fetch data from Google Sheets:', error);
+    return [];
+  }
+}
+
+// Function to calculate ETA (from index (21).html)
+function calcETA({driver, jobType, city, startHHMM}){
+  const km = appState.cities[city] ?? 0;
+  const spd = DRIVERS_INFO[driver === 'ALI' ? 'עלי' : 'חכמת'].speed;
+  const travelMin = (km / spd) * 60;
+  const serviceMin = JOB_TYPES[jobType].svcDefaultMin;
+  const startMin = U.parseTimeToMinutes(startHHMM || '09:00');
+  const arriveHHMM = U.fmtTime(startMin + travelMin);
+  const finishHHMM = U.fmtTime(startMin + travelMin + serviceMin);
+  return { km, travelMin: Math.round(travelMin), serviceMin, arriveHHMM, finishHHMM };
+}
+
+
+// --- Common UI Components ---
+
+const LoadingSpinner = () => (
+  <div className="flex items-center justify-center space-x-2 text-white mb-6">
+    <svg className="animate-spin h-5 w-5 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+    </svg>
+    <span>טוען נתונים...</span>
+  </div>
+);
+
+const getStatusColorClass = (status) => {
+  switch (status) {
+    case 'מתכונן ליציאה': return 'bg-blue-600 text-white';
+    case 'בדרך': return 'bg-yellow-600 text-white';
+    case 'סופק': return 'bg-green-600 text-white';
+    case 'נדחה למועד אחר': return 'bg-red-600 text-white';
+    case 'מוכנה': return 'bg-purple-600 text-white';
+    case 'בטיפול': return 'bg-gray-600 text-white';
+    case 'בוטל': return 'bg-red-600 text-white';
+    case 'העמסה': return 'bg-indigo-600 text-white'; // Changed to indigo for 'loading'
+    case 'סופק חלקית': return 'bg-orange-600 text-white';
+    default: return 'bg-gray-600 text-white';
+  }
+};
+
+const TableRow = ({ order, isDriverPage = false, onEdit, onDelete }) => (
+  <tr className="bg-dark-card-bg even:bg-dark-card-bg/70 hover:bg-white/10 transition-colors border-b border-dark-border last:border-b-0">
+    {!isDriverPage && <td className="p-3 whitespace-nowrap text-base font-medium text-white">{order.driverName}</td>}
+    <td className="p-3 whitespace-nowrap text-base text-white/90">{order.date}</td>
+    <td className="p-3 whitespace-nowrap text-base text-white/90">{order.time}</td>
+    <td className="p-3 whitespace-nowrap text-base text-white/90">{WAREHOUSES[order.warehouse]?.label || order.warehouse}</td>
+    <td className="p-3 whitespace-nowrap text-base">
+      <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColorClass(order.status)}`}>
+        {order.status}
+      </span>
+    </td>
+    <td className="p-3 whitespace-nowrap text-base text-white/90">{order.customerName}</td>
+    <td className="p-3 whitespace-nowrap text-base text-white/90">{order.address}</td>
+    <td className="p-3 whitespace-nowrap text-base text-white/90">{order.orderType}</td>
+    {!isDriverPage && (
+      <td className="p-3 whitespace-nowrap text-left text-base font-medium">
+        <button onClick={() => onEdit(order.id)} className="text-indigo-400 hover:text-indigo-200 ml-3 transition-colors text-sm">ערוך</button>
+        <button onClick={() => onDelete(order.id)} className="text-red-400 hover:text-red-200 transition-colors text-sm">מחק</button>
+      </td>
+    )}
+  </tr>
+);
+
+// --- Modals ---
+const OrderModal = ({ isOpen, onClose, onSubmit, initialData = {} }) => {
+  const [formData, setFormData] = useState(initialData);
+
+  useEffect(() => {
+    setFormData(initialData);
+  }, [initialData, isOpen]);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    onSubmit(formData);
+    onClose();
+  };
+
+  return (
+    <div className={`fixed inset-0 bg-gray-900 bg-opacity-75 flex justify-center items-center z-50 ${isOpen ? 'flex' : 'hidden'}`}>
+      <div className="glass w-full max-w-lg mx-4 rounded-3xl p-6 border border-dark-border shadow-glow">
+        <h3 className="text-2xl font-bold mb-4 text-white">הוסף/ערוך הזמנה</h3>
+        <form onSubmit={handleSubmit}>
+          <div className="mb-4">
+            <label htmlFor="driverName" className="block text-white/70 mb-1">שם נהג:</label>
+            <select id="driverName" name="driverName" value={formData.driverName || ''} onChange={handleChange} required className="w-full px-3 py-2 rounded-2xl bg-dark-card-bg border border-dark-border text-white focus:outline-none focus:ring-2 focus:ring-primary">
+              {Object.keys(DRIVERS_INFO).map(driverKey => (
+                <option key={driverKey} value={driverKey}>{DRIVERS_INFO[driverKey].name}</option>
+              ))}
+            </select>
+          </div>
+          <div className="mb-4">
+            <label htmlFor="customerName" className="block text-white/70 mb-1">שם לקוח:</label>
+            <input type="text" id="customerName" name="customerName" value={formData.customerName || ''} onChange={handleChange} required className="w-full px-3 py-2 rounded-2xl bg-dark-card-bg border border-dark-border text-white rtl-input focus:outline-none focus:ring-2 focus:ring-primary" placeholder="שם לקוח" />
+          </div>
+          <div className="mb-4">
+            <label htmlFor="city" className="block text-white/70 mb-1">עיר:</label>
+            <input type="text" id="city" name="city" value={formData.city || ''} onChange={handleChange} required className="w-full px-3 py-2 rounded-2xl bg-dark-card-bg border border-dark-border text-white rtl-input focus:outline-none focus:ring-2 focus:ring-primary" placeholder="עיר" />
+          </div>
+          <div className="mb-4">
+            <label htmlFor="address" className="block text-white/70 mb-1">כתובת אספקה:</label>
+            <input type="text" id="address" name="address" value={formData.address || ''} onChange={handleChange} required className="w-full px-3 py-2 rounded-2xl bg-dark-card-bg border border-dark-border text-white rtl-input focus:outline-none focus:ring-2 focus:ring-primary" placeholder="רחוב ומספר" />
+          </div>
+          <div className="mb-4">
+            <label htmlFor="orderType" className="block text-white/70 mb-1">סוג פעולה:</label>
+            <select id="orderType" name="orderType" value={formData.orderType || ''} onChange={handleChange} required className="w-full px-3 py-2 rounded-2xl bg-dark-card-bg border border-dark-border text-white focus:outline-none focus:ring-2 focus:ring-primary">
+              <option value="הובלה אזורי">הובלה אזורי</option>
+              <option value="פריקה ידנית">פריקה ידנית</option>
+              <option value="גישה לאתר">גישה לאתר</option>
+              <option value="הובלת מנוף">הובלת מנוף</option>
+              <option value="הובלת מנוף 15 מטר">הובלת מנוף 15 מטר</option>
+              <option value="איסוף בלות פסולת">איסוף בלות פסולת</option>
+              <option value="עבודת מנוף">עבודת מנוף</option>
+            </select>
+          </div>
+          <div className="mb-4">
+            <label htmlFor="status" className="block text-white/70 mb-1">סטטוס:</label>
+            <select id="status" name="status" value={formData.status || ''} onChange={handleChange} required className="w-full px-3 py-2 rounded-2xl bg-dark-card-bg border border-dark-border text-white focus:outline-none focus:ring-2 focus:ring-primary">
+              {STATUSES.map(statusValue => (
+                <option key={statusValue} value={statusValue}>{statusValue}</option>
+              ))}
+            </select>
+          </div>
+          <div className="mb-4">
+            <label htmlFor="date" className="block text-white/70 mb-1">תאריך אספקה:</label>
+            <input type="date" id="date" name="date" value={formData.date || ''} onChange={handleChange} required className="w-full px-3 py-2 rounded-2xl bg-dark-card-bg border border-dark-border text-white focus:outline-none focus:ring-2 focus:ring-primary" />
+          </div>
+          <div className="mb-4">
+            <label htmlFor="time" className="block text-white/70 mb-1">שעת אספקה:</label>
+            <input type="time" id="time" name="time" value={formData.time || ''} onChange={handleChange} required className="w-full px-3 py-2 rounded-2xl bg-dark-card-bg border border-dark-border text-white focus:outline-none focus:ring-2 focus:ring-primary" />
+          </div>
+          <div className="flex justify-end space-x-2">
+            <button type="button" onClick={onClose} className="px-4 py-2 bg-white/10 text-white rounded-lg hover:bg-white/20 transition-colors">ביטול</button>
+            <button type="submit" className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-secondary transition-colors">שמור</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+const CustomAlert = ({ message, onClose, type = 'info' }) => {
+  let bgColor, textColor, borderColor;
+  switch (type) {
+    case 'success': bgColor = 'bg-green-600'; textColor = 'text-white'; borderColor = 'border-green-400'; break;
+    case 'error': bgColor = 'bg-red-600'; textColor = 'text-white'; borderColor = 'border-red-400'; break;
+    case 'warning': bgColor = 'bg-yellow-600'; textColor = 'text-white'; borderColor = 'border-yellow-400'; break;
+    default: bgColor = 'bg-blue-600'; textColor = 'text-white'; borderColor = 'border-blue-400'; break;
   }
 
-  // ====== Init ======
-  function init(){
-    Storage.load(); initCityDatalist(); renderTimeline(); renderOrdersTable(); renderKPIs(); renderCharts(); buildMorningReport();
+  return (
+    <div className={`fixed inset-0 bg-gray-900 bg-opacity-75 flex justify-center items-center z-50`}>
+      <div className={`${bgColor} ${textColor} p-6 rounded-lg shadow-lg flex flex-col items-center max-w-sm text-center border ${borderColor}`}>
+        <p className="text-lg mb-4">{message}</p>
+        <button onClick={onClose} className="px-4 py-2 bg-white/10 rounded-lg shadow hover:bg-white/20 text-white">
+          אישור
+        </button>
+      </div>
+    </div>
+  );
+};
 
-    // Fill city datalist on form open
-    document.getElementById('newOrderBtn').onclick = ()=>{ document.getElementById('date').value = U.todayStr(); enforceDriverType(); updateCalcTags(); UI.openModal('newOrderModal'); };
-    document.getElementById('citiesBtn').onclick = openCities;
-    document.getElementById('settingsBtn').onclick = openSettings;
-    document.getElementById('calcBtn').onclick = updateCalcTags;
-    document.getElementById('morningReportBtn').onclick = buildMorningReport;
-    document.getElementById('copyReportBtn').onclick = copyReport;
+// --- Timeline Component ---
+const DAY_START_MIN = 6 * 60; // 06:00
+const DAY_END_MIN = 16 * 60; // 16:00
+const DAY_TOTAL_MIN = DAY_END_MIN - DAY_START_MIN;
 
-    document.getElementById('newOrderForm').addEventListener('submit', onSubmitNewOrder);
-    ['driver','jobType','city','time'].forEach(id=> document.getElementById(id).addEventListener('change', updateCalcTags));
-    document.getElementById('driver').addEventListener('change', enforceDriverType);
+const Timeline = ({ orders, onUpdateOrder }) => {
+  const laneRefs = {
+    ALI: useRef(null),
+    HIKMAT: useRef(null),
+  };
 
-    document.getElementById('saveCitiesBtn').onclick = ()=>{ Storage.save(); initCityDatalist(); UI.toast('מאגר ערים נשמר ✅'); UI.closeModal('citiesModal'); };
+  const getOrderPosition = useCallback((order) => {
+    const startMin = U.parseTimeToMinutes(order.time);
+    const orderDuration = order.travelMin + order.serviceMin;
+    const clampedStartMin = U.clamp(startMin, DAY_START_MIN, DAY_END_MIN - Math.max(orderDuration, 15)); // Ensure order doesn't start after end of day
+    const leftPct = ((clampedStartMin - DAY_START_MIN) / DAY_TOTAL_MIN) * 100;
+    const widthPct = (Math.max(orderDuration, 15) / DAY_TOTAL_MIN) * 100; // Minimum 15 min display
 
-    document.getElementById('saveSettingsBtn').onclick = ()=>{
-      state.settings.appsScriptUrl = document.getElementById('appsScriptUrl').value.trim();
-      state.settings.workStart = document.getElementById('workStart').value;
-      state.settings.workEnd = document.getElementById('workEnd').value;
-      state.settings.svcManual = Number(document.getElementById('svcManual').value||45);
-      state.settings.svcCrane = Number(document.getElementById('svcCrane').value||90);
-      state.settings.speedAli = Number(document.getElementById('speedAli').value||55);
-      state.settings.speedHikmat = Number(document.getElementById('speedHikmat').value||50);
-      Storage.save(); UI.toast('הגדרות נשמרו ✅'); UI.closeModal('settingsModal'); renderAll();
+    return { left: `${leftPct}%`, width: `${widthPct}%` };
+  }, []);
+
+  const handleDrag = useCallback((e, orderId, driverId) => {
+    let startX = (e.touches ? e.touches[0].clientX : e.clientX);
+    const orderElement = e.currentTarget;
+    const laneElement = laneRefs[driverId].current;
+    if (!laneElement) return;
+
+    const initialLeft = orderElement.offsetLeft;
+    const orderWidth = orderElement.offsetWidth; // Get current rendered width
+    const laneWidth = laneElement.clientWidth;
+
+    orderElement.classList.add('dragging');
+
+    const onMouseMove = (moveEvent) => {
+      moveEvent.preventDefault(); // Prevent scrolling on touch devices
+      const currentX = (moveEvent.touches ? moveEvent.touches[0].clientX : moveEvent.clientX);
+      const deltaX = currentX - startX;
+      let newLeft = initialLeft + deltaX;
+
+      // Clamp newLeft within lane bounds
+      newLeft = U.clamp(newLeft, 0, laneWidth - orderWidth);
+      orderElement.style.left = `${newLeft}px`;
     };
 
-    document.getElementById('seedBtn').onclick = seed;
-    document.getElementById('searchInput').addEventListener('input', renderOrdersTable);
-    document.getElementById('statusFilter').addEventListener('change', renderOrdersTable);
+    const onMouseUp = () => {
+      orderElement.classList.remove('dragging');
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('touchmove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+      window.removeEventListener('touchend', onMouseUp);
+
+      // Calculate new time based on final position
+      const finalLeft = orderElement.offsetLeft;
+      const leftPct = finalLeft / laneWidth;
+      const snappedMin = Math.round(((leftPct * DAY_TOTAL_MIN) + DAY_START_MIN) / 15) * 15; // Snap to 15-minute intervals
+      const newTime = U.fmtTime(snappedMin);
+
+      onUpdateOrder(orderId, { time: newTime });
+    };
+
+    window.addEventListener('mousemove', onMouseMove, { passive: false });
+    window.addEventListener('touchmove', onMouseMove, { passive: false });
+    window.addEventListener('mouseup', onMouseUp);
+    window.addEventListener('touchend', onMouseUp);
+  }, [onUpdateOrder]);
+
+  const handleResize = useCallback((e, orderId, driverId) => {
+    e.stopPropagation(); // Prevent drag from starting
+    let startX = (e.touches ? e.touches[0].clientX : e.clientX);
+    const orderElement = e.currentTarget.parentElement; // The order-block div
+    const laneElement = laneRefs[driverId].current;
+    if (!laneElement) return;
+
+    const initialWidth = orderElement.offsetWidth;
+    const initialLeft = orderElement.offsetLeft;
+    const laneWidth = laneElement.clientWidth;
+
+    orderElement.classList.add('resizing');
+
+    const onMouseMove = (moveEvent) => {
+      moveEvent.preventDefault();
+      const currentX = (moveEvent.touches ? moveEvent.touches[0].clientX : moveEvent.clientX);
+      const deltaX = currentX - startX;
+      let newWidth = initialWidth + deltaX;
+
+      // Ensure min width and within lane bounds
+      newWidth = U.clamp(newWidth, 20, laneWidth - initialLeft); // Minimum 20px width
+
+      orderElement.style.width = `${newWidth}px`;
+    };
+
+    const onMouseUp = () => {
+      orderElement.classList.remove('resizing');
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('touchmove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+      window.removeEventListener('touchend', onMouseUp);
+
+      // Calculate new duration based on final width
+      const finalWidth = orderElement.offsetWidth;
+      const widthPct = finalWidth / laneWidth;
+      const newDuration = Math.round((widthPct * DAY_TOTAL_MIN) / 15) * 15; // Snap to 15-minute intervals
+      
+      const order = orders.find(o => o.id === orderId);
+      if (order) {
+        // Recalculate serviceMin or add a new 'duration' field to order object
+        // For simplicity, let's just update serviceMin for now, keeping travelMin constant
+        const newServiceMin = newDuration - order.travelMin;
+        onUpdateOrder(orderId, { serviceMin: Math.max(0, newServiceMin), finishHHMM: U.fmtTime(U.parseTimeToMinutes(order.arriveHHMM) + Math.max(0, newServiceMin)) });
+      }
+    };
+
+    window.addEventListener('mousemove', onMouseMove, { passive: false });
+    window.addEventListener('touchmove', onMouseMove, { passive: false });
+    window.addEventListener('mouseup', onMouseUp);
+    window.addEventListener('touchend', onMouseUp);
+  }, [orders, onUpdateOrder]);
+
+
+  const todayOrders = orders.filter(o => o.date === U.todayStr());
+
+  return (
+    <section className="mt-8 grid grid-cols-1 gap-6">
+      <h2 className="text-2xl md:text-3xl font-bold text-white mb-4">ציר זמן – היום</h2>
+
+      <div className="glass rounded-3xl p-4 shadow-glow"> {/* Added shadow-glow here */}
+        <div className="flex flex-col md:flex-row items-start md:items-center gap-3 mb-3 text-base text-white/80">
+          <div className="flex items-center gap-2">
+            <div className={`w-3 h-3 rounded-full bg-${DRIVERS_INFO['עלי'].color}`}></div>
+            <span>{DRIVERS_INFO['עלי'].name} – {JOB_TYPES.MANUAL.label} ({DRIVERS_INFO['עלי'].vehicle})</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className={`w-3 h-3 rounded-full bg-${DRIVERS_INFO['חכמת'].color}`}></div>
+            <span>{DRIVERS_INFO['חכמת'].name} – {JOB_TYPES.CRANE.label} ({DRIVERS_INFO['חכמת'].vehicle})</span>
+          </div>
+          <div className="ms-auto text-white/60">חלון עבודה: {U.fmtTime(DAY_START_MIN)}–{U.fmtTime(DAY_END_MIN)}</div>
+        </div>
+
+        {/* Time header */}
+        <div className="grid grid-cols-timeline gap-2 text-sm text-white/70 font-semibold">
+          <div className=""></div> {/* Empty corner for alignment */}
+          {Array.from({ length: (DAY_END_MIN - DAY_START_MIN) / 30 + 1 }).map((_, i) => {
+            const time = DAY_START_MIN + i * 30;
+            return (
+              <div key={time} className="relative text-center">
+                <div className="tick absolute inset-0"></div>
+                <div className="relative z-10">{U.fmtTime(time)}</div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Ali lane */}
+        <div className="relative mt-2">
+          <div className="grid grid-cols-timeline gap-2">
+            <div className="text-lg text-white font-medium flex items-center gap-2">👨‍🔧 {DRIVERS_INFO['עלי'].name}</div>
+            {Array.from({ length: (DAY_END_MIN - DAY_START_MIN) / 30 + 1 }).map((_, i) => (
+              <div key={`ali-tick-${i}`} className="h-3 relative"><div className="tick absolute inset-0"></div></div>
+            ))}
+          </div>
+          <div ref={laneRefs.ALI} id="laneAli" className="relative h-24 mt-1 border border-dark-border rounded-2xl overflow-hidden bg-dark-card-bg">
+            {todayOrders.filter(o => o.driverName === DRIVERS_INFO['עלי'].name).map(order => {
+              const { left, width } = getOrderPosition(order);
+              const bgColor = `bg-${DRIVERS_INFO['עלי'].color}/80`;
+              return (
+                <div
+                  key={order.id}
+                  className={`order-block ${bgColor} border border-dark-border shadow hover:shadow-neon`}
+                  style={{ left, width }}
+                  onMouseDown={(e) => handleDrag(e, order.id, 'ALI')}
+                  onTouchStart={(e) => handleDrag(e, order.id, 'ALI')}
+                >
+                  <div className='p-2 text-sm leading-5'>
+                    <div className='font-semibold text-white'>{order.customerName} · {order.city}</div>
+                    <div className='text-white/90'>{order.time} → ETA {order.arriveHHMM} · סיום {order.finishHHMM}</div>
+                    <div className='text-white/80'>{order.status || 'מתוכנן'}</div>
+                  </div>
+                   {/* Resizer handle */}
+                   <div
+                    className="absolute top-0 bottom-0 w-3 cursor-ew-resize bg-white/20 right-0 rounded-r-xl hover:bg-white/30 transition-colors"
+                    onMouseDown={(e) => handleResize(e, order.id, 'ALI')}
+                    onTouchStart={(e) => handleResize(e, order.id, 'ALI')}
+                  ></div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Hikmat lane */}
+        <div className="relative mt-4">
+          <div className="grid grid-cols-timeline gap-2">
+            <div className="text-lg text-white font-medium flex items-center gap-2">🏗️ {DRIVERS_INFO['חכמת'].name}</div>
+            {Array.from({ length: (DAY_END_MIN - DAY_START_MIN) / 30 + 1 }).map((_, i) => (
+              <div key={`hikmat-tick-${i}`} className="h-3 relative"><div className="tick absolute inset-0"></div></div>
+            ))}
+          </div>
+          <div ref={laneRefs.HIKMAT} id="laneHikmat" className="relative h-24 mt-1 border border-dark-border rounded-2xl overflow-hidden bg-dark-card-bg">
+            {todayOrders.filter(o => o.driverName === DRIVERS_INFO['חכמת'].name).map(order => {
+              const { left, width } = getOrderPosition(order);
+              const bgColor = `bg-${DRIVERS_INFO['חכמת'].color}/80`;
+              return (
+                <div
+                  key={order.id}
+                  className={`order-block ${bgColor} border border-dark-border shadow hover:shadow-neon`}
+                  style={{ left, width }}
+                  onMouseDown={(e) => handleDrag(e, order.id, 'HIKMAT')}
+                  onTouchStart={(e) => handleDrag(e, order.id, 'HIKMAT')}
+                >
+                  <div className='p-2 text-sm leading-5'>
+                    <div className='font-semibold text-white'>{order.customerName} · {order.city}</div>
+                    <div className='text-white/90'>{order.time} → ETA {order.arriveHHMM} · סיום {order.finishHHMM}</div>
+                    <div className='text-white/80'>{order.status || 'מתוכנן'}</div>
+                  </div>
+                  {/* Resizer handle */}
+                  <div
+                    className="absolute top-0 bottom-0 w-3 cursor-ew-resize bg-white/20 right-0 rounded-r-xl hover:bg-white/30 transition-colors"
+                    onMouseDown={(e) => handleResize(e, order.id, 'HIKMAT')}
+                    onTouchStart={(e) => handleResize(e, order.id, 'HIKMAT')}
+                  ></div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+};
+
+
+// --- Main Dashboard Component ---
+const MainDashboard = ({ orders, isLoading, showDriverPage, onAddOrder, onEditOrder, onDeleteOrder }) => {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [driverFilter, setDriverFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingOrder, setEditingOrder] = useState(null);
+  const [isAlertOpen, setIsAlertOpen] = useState(false);
+  const [alertMessage, setAlertMessage] = useState('');
+
+  const filteredOrders = orders.filter(order => {
+    const matchesSearch = Object.values(order).some(value =>
+      String(value).toLowerCase().includes(searchTerm.toLowerCase())
+    );
+    const matchesDriver = driverFilter === '' || order.driverName === driverFilter;
+    const matchesStatus = statusFilter === '' || order.status === statusFilter;
+    return matchesSearch && matchesDriver && matchesStatus;
+  });
+
+  const totalOrders = orders.length;
+  const aliOrders = orders.filter(item => item.driverName === DRIVERS_INFO['עלי'].name).length;
+  const hakmatOrders = orders.filter(item => item.driverName === DRIVERS_INFO['חכמת'].name).length;
+
+  const handleOpenModal = (order = null) => {
+    setEditingOrder(order);
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setEditingOrder(null);
+  };
+
+  const handleOrderSubmit = (formData) => {
+    const driverInfo = DRIVERS_INFO[formData.driverName];
+    const jobType = formData.orderType.includes('מנוף') ? 'CRANE' : 'MANUAL';
+    const { km, travelMin, serviceMin, arriveHHMM, finishHHMM } = calcETA({
+      driver: driverInfo.id,
+      jobType: jobType,
+      city: formData.city,
+      startHHMM: formData.time
+    });
+
+    const orderData = {
+      ...formData,
+      jobType,
+      km,
+      travelMin,
+      serviceMin,
+      arriveHHMM,
+      finishHHMM
+    };
+
+    if (editingOrder) {
+      onEditOrder({ ...editingOrder, ...orderData });
+      setAlertMessage('הזמנה עודכנה בהצלחה!');
+    } else {
+      onAddOrder({ ...orderData, id: U.uid() });
+      setAlertMessage('הזמנה נוספה בהצלחה!');
+    }
+    setIsAlertOpen(true);
+  };
+
+  const handleDelete = (orderId) => {
+    setAlertMessage('האם אתה בטוח שברצונך למחוק הזמנה זו?');
+    setIsAlertOpen(true);
+    onDeleteOrder(orderId);
+  };
+
+  // Function to update order for timeline drag/resize
+  const updateOrderFromTimeline = (orderId, newFields) => {
+    const orderToUpdate = orders.find(o => o.id === orderId);
+    if (orderToUpdate) {
+      const updatedOrder = { ...orderToUpdate, ...newFields };
+      // Recalculate ETA fields if time or serviceMin changed
+      if (newFields.time || newFields.serviceMin) {
+        const driverInfo = DRIVERS_INFO[updatedOrder.driverName];
+        const jobType = updatedOrder.jobType;
+        const etaData = calcETA({
+          driver: driverInfo.id,
+          jobType: jobType,
+          city: updatedOrder.city,
+          startHHMM: updatedOrder.time,
+        });
+        Object.assign(updatedOrder, etaData);
+      }
+      onEditOrder(updatedOrder);
+      setAlertMessage(`הזמנה ${updatedOrder.customerName} עודכנה בהצלחה!`);
+      setIsAlertOpen(true);
+    }
+  };
+
+
+  return (
+    <div id="main-dashboard-section" className="p-4 md:p-8 text-white">
+      <header className="text-center mb-8 md:mb-12">
+        <h1 className="text-4xl md:text-5xl font-extrabold text-white">מערכת ניהול נהגים - Dashboard</h1>
+        <p className="mt-2 text-lg md:text-xl text-white/70">ניהול סידורים בזמן אמת עבור עלי וחכמת</p>
+      </header>
+
+      {isLoading && <LoadingSpinner />}
+
+      <section id="dashboard-cards" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8 md:mb-12">
+        <div className="glass rounded-xl p-4 md:p-6 shadow-glow"> {/* Added shadow-glow here */}
+          <h3 className="text-white/70 text-base font-medium">סה"כ הזמנות</h3>
+          <p id="totalOrders" className="mt-1 text-3xl md:text-4xl font-semibold text-white">{totalOrders}</p>
+        </div>
+        <div onClick={() => showDriverPage('עלי')} className="glass rounded-xl p-4 md:p-6 cursor-pointer shadow-glow"> {/* Added shadow-glow here */}
+          <h3 className="text-white/70 text-base font-medium">סידורים של עלי</h3>
+          <p id="aliOrders" className="mt-1 text-3xl md:text-4xl font-semibold text-manual">{aliOrders}</p>
+        </div>
+        <div onClick={() => showDriverPage('חכמת')} className="glass rounded-xl p-4 md:p-6 cursor-pointer shadow-glow"> {/* Added shadow-glow here */}
+          <h3 className="text-white/70 text-base font-medium">סידורים של חכמת</h3>
+          <p id="hakmatOrders" className="mt-1 text-3xl md:text-4xl font-semibold text-crane">{hakmatOrders}</p>
+        </div>
+        <div className="bg-blue-600 text-white rounded-xl p-4 md:p-6 border border-blue-400 transition-transform transform hover:scale-105 flex items-center justify-center cursor-pointer hover:bg-blue-700 shadow-neon" onClick={() => handleOpenModal()}>
+          <div className="text-center">
+            <svg className="h-8 w-8 md:h-10 md:w-10 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path></svg>
+            <p className="mt-2 font-bold text-lg md:text-xl">הוסף הזמנה חדשה</p>
+          </div>
+        </div>
+      </section>
+
+      {/* Timeline Integration */}
+      <Timeline orders={orders} onUpdateOrder={updateOrderFromTimeline} />
+
+      <section className="bg-dark-card-bg rounded-xl p-4 md:p-6 shadow-glow overflow-x-auto mt-8"> {/* Added shadow-glow here */}
+        <h2 className="text-2xl md:text-3xl font-bold text-white mb-4">טבלת סידורי עבודה</h2>
+        <div className="flex flex-col md:flex-row justify-between items-center mb-4 space-y-4 md:space-y-0">
+          <input
+            type="text"
+            placeholder="חיפוש..."
+            className="w-full md:w-1/3 p-3 rounded-lg bg-dark-card-bg border border-dark-border focus:outline-none focus:ring-2 focus:ring-primary text-white text-base rtl-input"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+          <select
+            className="w-full md:w-1/4 p-3 rounded-lg bg-dark-card-bg border border-dark-border focus:outline-none focus:ring-2 focus:ring-primary text-white text-base"
+            value={driverFilter}
+            onChange={(e) => setDriverFilter(e.target.value)}
+          >
+            <option value="">כל הנהגים</option>
+            <option value="עלי">עלי</option>
+            <option value="חכמת">חכמת</option>
+          </select>
+          <select
+            className="w-full md:w-1/4 p-3 rounded-lg bg-dark-card-bg border border-dark-border focus:outline-none focus:ring-2 focus:ring-primary text-white text-base"
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+          >
+            <option value="">כל הסטטוסים</option>
+            {STATUSES.map(statusValue => (
+              <option key={statusValue} value={statusValue}>{statusValue}</option>
+            ))}
+          </select>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-dark-border">
+            <thead className="bg-white/10">
+              <tr>
+                <th className="p-3 text-right text-sm font-medium text-white/70 uppercase tracking-wider">נהג</th>
+                <th className="p-3 text-right text-sm font-medium text-white/70 uppercase tracking-wider">תאריך</th>
+                <th className="p-3 text-right text-sm font-medium text-white/70 uppercase tracking-wider">שעה</th>
+                <th className="p-3 text-right text-sm font-medium text-white/70 uppercase tracking-wider">מחסן</th>
+                <th className="p-3 text-right text-sm font-medium text-white/70 uppercase tracking-wider">סטטוס</th>
+                <th className="p-3 text-right text-sm font-medium text-white/70 uppercase tracking-wider">לקוח</th>
+                <th className="p-3 text-right text-sm font-medium text-white/70 uppercase tracking-wider">כתובת אספקה</th>
+                <th className="p-3 text-right text-sm font-medium text-white/70 uppercase tracking-wider">סוג פעולה</th>
+                <th className="p-3 text-right text-sm font-medium text-white/70 uppercase tracking-wider">פעולות</th>
+              </tr>
+            </thead>
+            <tbody id="ordersTableBody" className="divide-y divide-dark-border">
+              {filteredOrders.map(order => (
+                <TableRow
+                  key={order.id}
+                  order={order}
+                  onEdit={() => handleOpenModal(order)}
+                  onDelete={() => handleDelete(order.id)}
+                />
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <OrderModal
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+        onSubmit={handleOrderSubmit}
+        initialData={editingOrder || {}}
+      />
+      {isAlertOpen && <CustomAlert message={alertMessage} onClose={() => setIsAlertOpen(false)} />}
+    </div>
+  );
+};
+
+// --- Driver Profile Page Component ---
+const DriverPage = ({ driverName, orders, showMainDashboard, onEditOrder, onDeleteOrder }) => {
+  const driverInfo = DRIVERS_INFO[driverName];
+  if (!driverInfo) {
+    return (
+      <div className="text-center p-8 text-white">
+        <p className="text-xl text-red-500">נהג לא נמצא</p>
+        <button onClick={showMainDashboard} className="mt-4 px-4 py-2 bg-white/10 text-white rounded-lg hover:bg-white/20 transition-colors">חזור ללוח המחוונים</button>
+      </div>
+    );
   }
 
-  document.addEventListener('DOMContentLoaded', init);
+  const driverOrders = orders.filter(item => item.driverName === driverName);
 
-  </script>
-</body>
-</html>
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingOrder, setEditingOrder] = useState(null);
+  const [isAlertOpen, setIsAlertOpen] = useState(false);
+  const [alertMessage, setAlertMessage] = useState('');
+
+  const handleOpenModal = (order) => {
+    setEditingOrder(order);
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setEditingOrder(null);
+  };
+
+  const handleOrderSubmit = (formData) => {
+    const driver = DRIVERS_INFO[formData.driverName].id;
+    const jobType = formData.orderType.includes('מנוף') ? 'CRANE' : 'MANUAL';
+    const { km, travelMin, serviceMin, arriveHHMM, finishHHMM } = calcETA({
+      driver,
+      jobType,
+      city: formData.city,
+      startHHMM: formData.time
+    });
+
+    const orderData = {
+      ...formData,
+      jobType,
+      km,
+      travelMin,
+      serviceMin,
+      arriveHHMM,
+      finishHHMM
+    };
+
+    onEditOrder({ ...editingOrder, ...orderData });
+    setAlertMessage('הזמנה עודכנה בהצלחה!');
+    setIsAlertOpen(true);
+  };
+
+  const handleDelete = (orderId) => {
+    setAlertMessage('האם אתה בטוח שברצונך למחוק הזמנה זו?');
+    setIsAlertOpen(true);
+    onDeleteOrder(orderId);
+  };
+
+  return (
+    <div id="driver-profile-section" className="p-4 md:p-8 text-white">
+      <header className="text-center mb-8">
+        <button onClick={showMainDashboard} className="mb-4 px-4 py-2 bg-white/10 text-white rounded-lg hover:bg-white/20 transition-colors">חזור ללוח המחוונים</button>
+        <img className="w-24 h-24 md:w-32 md:h-32 rounded-full mx-auto mb-4 container-shadow object-cover border border-dark-border" src={driverInfo.image} alt="Driver Profile Picture" />
+        <h1 className="text-3xl md:text-4xl font-extrabold text-white">{driverInfo.name}</h1>
+        <h2 className="mt-2 text-md md:text-lg text-white/70">{driverInfo.slogan}</h2>
+      </header>
+      <section className="bg-dark-card-bg rounded-xl p-4 md:p-6 shadow-glow overflow-x-auto"> {/* Added shadow-glow here */}
+        <h3 className="text-2xl md:text-3xl font-bold text-white mb-4">טבלת הזמנות של {driverInfo.name}</h3>
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-dark-border">
+            <thead className="bg-white/10">
+              <tr>
+                <th className="p-3 text-right text-sm font-medium text-white/70 uppercase tracking-wider">תאריך</th>
+                <th className="p-3 text-right text-sm font-medium text-white/70 uppercase tracking-wider">שעה</th>
+                <th className="p-3 text-right text-sm font-medium text-white/70 uppercase tracking-wider">מחסן</th>
+                <th className="p-3 text-right text-sm font-medium text-white/70 uppercase tracking-wider">סטטוס</th>
+                <th className="p-3 text-right text-sm font-medium text-white/70 uppercase tracking-wider">לקוח</th>
+                <th className="p-3 text-right text-sm font-medium text-white/70 uppercase tracking-wider">כתובת אספקה</th>
+                <th className="p-3 text-right text-sm font-medium text-white/70 uppercase tracking-wider">סוג פעולה</th>
+                <th className="p-3 text-right text-sm font-medium text-white/70 uppercase tracking-wider">פעולות</th>
+              </tr>
+            </thead>
+            <tbody id="driverOrdersTableBody" className="divide-y divide-dark-border">
+              {driverOrders.map(order => (
+                <TableRow
+                  key={order.id}
+                  order={order}
+                  isDriverPage={true}
+                  onEdit={() => handleOpenModal(order)}
+                  onDelete={() => handleDelete(order.id)}
+                />
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <OrderModal
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+        onSubmit={handleOrderSubmit}
+        initialData={editingOrder || {}}
+      />
+      {isAlertOpen && <CustomAlert message={alertMessage} onClose={() => setIsAlertOpen(false)} />}
+    </div>
+  );
+};
+
+
+// --- Main App Component ---
+const App = () => {
+  const [currentPage, setCurrentPage] = useState('dashboard'); // 'dashboard', 'עלי', 'חכמת'
+  const [orders, setOrders] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Fetch orders on component mount
+  useEffect(() => {
+    const loadOrders = async () => {
+      setIsLoading(true);
+      const fetchedOrders = await fetchOrdersFromSheet();
+      setOrders(fetchedOrders);
+      setIsLoading(false);
+    };
+    loadOrders();
+  }, []); // Empty dependency array means this runs once on mount
+
+  const handleAddOrder = (newOrder) => {
+    setOrders(prevOrders => [...prevOrders, newOrder]);
+    // Optionally, send to Google Sheets via Apps Script
+    // callApi('addOrder', newOrder);
+  };
+
+  const handleEditOrder = (updatedOrder) => {
+    setOrders(prevOrders =>
+      prevOrders.map(order => (order.id === updatedOrder.id ? updatedOrder : order))
+    );
+    // Optionally, send to Google Sheets via Apps Script
+    // callApi('updateOrder', updatedOrder);
+  };
+
+  const handleDeleteOrder = (orderId) => {
+    setOrders(prevOrders => prevOrders.filter(order => order.id !== orderId));
+    // Optionally, send to Google Sheets via Apps Script
+    // callApi('deleteOrder', { id: orderId });
+  };
+
+  const renderPage = () => {
+    switch (currentPage) {
+      case 'dashboard':
+        return (
+          <MainDashboard
+            orders={orders}
+            isLoading={isLoading}
+            showDriverPage={setCurrentPage}
+            onAddOrder={handleAddOrder}
+            onEditOrder={handleEditOrder}
+            onDeleteOrder={handleDeleteOrder}
+          />
+        );
+      case 'עלי':
+        return (
+          <DriverPage
+            driverName="עלי"
+            orders={orders}
+            showMainDashboard={() => setCurrentPage('dashboard')}
+            onEditOrder={handleEditOrder}
+            onDeleteOrder={handleDeleteOrder}
+          />
+        );
+      case 'חכמת':
+        return (
+          <DriverPage
+            driverName="חכמת"
+            orders={orders}
+            showMainDashboard={() => setCurrentPage('dashboard')}
+            onEditOrder={handleEditOrder}
+            onDeleteOrder={handleDeleteOrder}
+          />
+        );
+      default:
+        return (
+          <MainDashboard
+            orders={orders}
+            isLoading={isLoading}
+            showDriverPage={setCurrentPage}
+            onAddOrder={handleAddOrder}
+            onEditOrder={handleEditOrder}
+            onDeleteOrder={handleDeleteOrder}
+          />
+        );
+    }
+  };
+
+  return (
+    <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 bg-background min-h-screen rtl font-sans">
+      {renderPage()}
+    </div>
+  );
+};
+
+export default App;
